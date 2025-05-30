@@ -1,0 +1,33 @@
+{
+  "name": "kia-tere-server",
+  "version": "1.0.0",
+  "description": "WebSocket server for Kia Tere multiplayer word game",
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
+    "dev:watch": "nodemon --exec ts-node src/server.ts"
+  },
+  "dependencies": {
+    "ws": "^8.14.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.4",
+    "@types/ws": "^8.5.10",
+    "nodemon": "^3.0.2",
+    "ts-node": "^10.9.1",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.3.3"
+  },
+  "keywords": [
+    "websocket",
+    "game",
+    "multiplayer",
+    "kia-tere",
+    "maori",
+    "typescript"
+  ],
+  "author": "",
+  "license": "MIT"
+}
