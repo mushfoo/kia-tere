@@ -25,6 +25,7 @@ interface GameState {
   roundActive: boolean
   roundNumber: number
   gameStarted: boolean
+  difficulty: 'easy' | 'hard'
 }
 
 interface WebSocketMessage {
@@ -42,6 +43,58 @@ type EliminationResult = {
   room: Room
   winner?: string
 }
+
+// Letter difficulty constants
+const LETTER_SETS = {
+  easy: [
+    'A',
+    'B',
+    'C',
+    'D',
+    'E',
+    'F',
+    'G',
+    'H',
+    'I',
+    'L',
+    'M',
+    'N',
+    'O',
+    'P',
+    'R',
+    'S',
+    'T',
+    'W',
+  ], // 18 common letters - easier to find words
+  hard: [
+    'A',
+    'B',
+    'C',
+    'D',
+    'E',
+    'F',
+    'G',
+    'H',
+    'I',
+    'J',
+    'K',
+    'L',
+    'M',
+    'N',
+    'O',
+    'P',
+    'Q',
+    'R',
+    'S',
+    'T',
+    'U',
+    'V',
+    'W',
+    'X',
+    'Y',
+    'Z',
+  ], // All 26 letters - includes challenging letters like Q, X, Z
+} as const
 
 // Game State Manager - Flexible for future database integration
 class GameStateManager {
@@ -125,10 +178,14 @@ class GameStateManager {
       roundActive: false,
       roundNumber: 1,
       gameStarted: false,
+      difficulty: 'easy',
     }
   }
 
-  startGame(roomCode: string): Room | null {
+  startGame(
+    roomCode: string,
+    difficulty: 'easy' | 'hard' = 'easy'
+  ): Room | null {
     const room = this.rooms.get(roomCode)
     if (!room) return null
 
@@ -137,6 +194,7 @@ class GameStateManager {
     room.gameState.gameStarted = true
     room.gameState.roundActive = true
     room.gameState.currentCategory = this.getRandomCategory()
+    room.gameState.difficulty = difficulty
 
     return room
   }
@@ -226,7 +284,6 @@ class GameStateManager {
     return { type: 'roundEnd', room }
   }
 
-  // Utility methods
   generateRoomCode(): string {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
     let result = ''
@@ -264,7 +321,6 @@ class GameStateManager {
     return categories[Math.floor(Math.random() * categories.length)]
   }
 
-  // Cleanup old rooms (can be enhanced with database persistence)
   cleanupRooms(): void {
     const now = Date.now()
     const ROOM_TIMEOUT = 30 * 60 * 1000 // 30 minutes
@@ -284,7 +340,6 @@ class GameStateManager {
     }
   }
 
-  // Future database integration points
   async saveRoom(room: Room): Promise<void> {
     // TODO: Save room state to database
     // await database.rooms.upsert(room);
@@ -301,7 +356,6 @@ class GameStateManager {
     // await database.events.create({ roomCode, event, timestamp: Date.now() });
   }
 
-  // Getters for WebSocket server
   getPlayerConnection(playerName: string): ExtendedWebSocket | undefined {
     return this.playerConnections.get(playerName)
   }
@@ -322,11 +376,17 @@ class KiaTereServer {
   private server: any
   private wss: WebSocket.Server
 
-  constructor(port: number = 9191) {
+  constructor(port: number = 8080) {
     this.port = port
     this.gameManager = new GameStateManager()
     this.server = createServer()
-    this.wss = new WebSocket.Server({ server: this.server })
+    this.wss = new WebSocket.Server({
+      server: this.server,
+      // Add CORS headers
+      verifyClient: (info, callback) => {
+        callback(true)
+      },
+    })
 
     this.setupWebSocketHandlers()
     this.startCleanupInterval()
@@ -364,31 +424,27 @@ class KiaTereServer {
       case 'CREATE_ROOM':
         this.handleCreateRoom(ws, message)
         break
-
       case 'JOIN_ROOM':
         this.handleJoinRoom(ws, message)
         break
-
       case 'START_GAME':
         this.handleStartGame(ws, message)
         break
-
       case 'START_TURN':
         this.handleStartTurn(ws, message)
         break
-
       case 'END_TURN':
         this.handleEndTurn(ws, message)
         break
-
       case 'TIME_UP':
         this.handleTimeUp(ws, message)
         break
-
       case 'TIMER_UPDATE':
         this.handleTimerUpdate(ws, message)
         break
-
+      case 'SET_DIFFICULTY':
+        this.handleSetDifficulty(ws, message)
+        break
       default:
         this.sendError(ws, 'Unknown message type')
     }
@@ -473,14 +529,17 @@ class KiaTereServer {
       return
     }
 
-    this.gameManager.startGame(ws.roomCode!)
+    const difficulty = message.difficulty || 'easy'
+    this.gameManager.startGame(ws.roomCode!, difficulty)
 
     this.broadcastToRoom(ws.roomCode!, {
       type: 'GAME_STARTED',
       gameState: room.gameState,
     })
 
-    console.log(`Game started in room: ${ws.roomCode}`)
+    console.log(
+      `Game started in room: ${ws.roomCode} with ${difficulty} difficulty`
+    )
   }
 
   private handleStartTurn(
@@ -585,6 +644,30 @@ class KiaTereServer {
     )
   }
 
+  private handleSetDifficulty(
+    ws: ExtendedWebSocket,
+    message: WebSocketMessage
+  ): void {
+    const room = this.gameManager.getRoom(ws.roomCode!)
+    if (!room || room.host !== ws.playerName) {
+      this.sendError(ws, 'Not authorized to change difficulty')
+      return
+    }
+
+    // Update difficulty in game state
+    room.gameState.difficulty = message.difficulty
+
+    // Broadcast the change to all players
+    this.broadcastToRoom(ws.roomCode!, {
+      type: 'GAME_STATE_UPDATE',
+      gameState: room.gameState,
+    })
+
+    console.log(
+      `Difficulty changed to ${message.difficulty} in room: ${ws.roomCode}`
+    )
+  }
+
   private handleDisconnection(ws: ExtendedWebSocket): void {
     if (ws.roomCode && ws.playerName) {
       const room = this.gameManager.removePlayer(ws.roomCode, ws.playerName)
@@ -602,7 +685,6 @@ class KiaTereServer {
     }
   }
 
-  // Utility methods
   private send(ws: ExtendedWebSocket, message: WebSocketMessage): void {
     if (ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify(message))

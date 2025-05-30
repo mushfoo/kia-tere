@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import {
   Play,
   RotateCcw,
@@ -13,6 +13,26 @@ import {
 } from 'lucide-react'
 
 // Types
+interface Player {
+  name: string
+  isConnected: boolean
+}
+
+interface GameState {
+  players: string[]
+  activePlayers: string[]
+  currentPlayerIndex: number
+  roundWins: Record<string, number>
+  currentCategory: string
+  usedLetters: string[]
+  timeLeft: number
+  isTimerRunning: boolean
+  roundActive: boolean
+  roundNumber: number
+  gameStarted: boolean
+  difficulty: 'easy' | 'hard'
+}
+
 interface WebSocketMessage {
   type: string
   [key: string]: any
@@ -20,35 +40,31 @@ interface WebSocketMessage {
 
 type ConnectionStatus = 'connected' | 'connecting' | 'disconnected' | 'error'
 type GamePhase = 'menu' | 'lobby' | 'playing' | 'gameOver'
+type Difficulty = 'easy' | 'hard'
 
-const KiaTereGame: React.FC = () => {
-  // Game state
-  const [gameState, setGameState] = useState<GamePhase>('menu')
-  const [isHost, setIsHost] = useState<boolean>(false)
-  const [roomCode, setRoomCode] = useState<string>('')
-  const [joinCode, setJoinCode] = useState<string>('')
-  const [playerName, setPlayerName] = useState<string>('')
-  const [players, setPlayers] = useState<string[]>([])
-  const [connectedPlayers, setConnectedPlayers] = useState<string[]>([])
-  const [currentPlayerIndex, setCurrentPlayerIndex] = useState<number>(0)
-  const [roundWins, setRoundWins] = useState<Record<string, number>>({})
-  const [currentCategory, setCurrentCategory] = useState<string>('')
-  const [usedLetters, setUsedLetters] = useState<Set<string>>(new Set())
-  const [timeLeft, setTimeLeft] = useState<number>(10)
-  const [isTimerRunning, setIsTimerRunning] = useState<boolean>(false)
-  const [roundActive, setRoundActive] = useState<boolean>(false)
-  const [activePlayers, setActivePlayers] = useState<string[]>([])
-  const [roundNumber, setRoundNumber] = useState<number>(1)
-  const [selectedLetter, setSelectedLetter] = useState<string | null>(null)
-  const [connectionStatus, setConnectionStatus] =
-    useState<ConnectionStatus>('disconnected')
-  const [copySuccess, setCopySuccess] = useState<boolean>(false)
-
-  const wsRef = useRef<WebSocket | null>(null)
-  const timerRef = useRef<NodeJS.Timeout | null>(null)
-
-  // Letters arranged in a grid
-  const letters: string[] = [
+// Letter difficulty constants based on frequency and word availability
+const LETTER_SETS = {
+  easy: [
+    'A',
+    'B',
+    'C',
+    'D',
+    'E',
+    'F',
+    'G',
+    'H',
+    'I',
+    'L',
+    'M',
+    'N',
+    'O',
+    'P',
+    'R',
+    'S',
+    'T',
+    'W',
+  ], // 18 common letters - easier to find words
+  hard: [
     'A',
     'B',
     'C',
@@ -75,21 +91,72 @@ const KiaTereGame: React.FC = () => {
     'X',
     'Y',
     'Z',
+  ], // All 26 letters - includes challenging letters like Q, X, Z
+}
+
+const KiaTereGame: React.FC = () => {
+  // Game state
+  const [gameState, setGameState] = useState<GamePhase>('menu')
+  const [isHost, setIsHost] = useState<boolean>(false)
+  const [roomCode, setRoomCode] = useState<string>('')
+  const [joinCode, setJoinCode] = useState<string>('')
+  const [playerName, setPlayerName] = useState<string>('')
+  const [players, setPlayers] = useState<string[]>([])
+  const [connectedPlayers, setConnectedPlayers] = useState<string[]>([])
+  const [currentPlayerIndex, setCurrentPlayerIndex] = useState<number>(0)
+  const [roundWins, setRoundWins] = useState<Record<string, number>>({})
+  const [currentCategory, setCurrentCategory] = useState<string>('')
+  const [usedLetters, setUsedLetters] = useState<Set<string>>(new Set())
+  const [timeLeft, setTimeLeft] = useState<number>(10)
+  const [isTimerRunning, setIsTimerRunning] = useState<boolean>(false)
+  const [roundActive, setRoundActive] = useState<boolean>(false)
+  const [activePlayers, setActivePlayers] = useState<string[]>([])
+  const [roundNumber, setRoundNumber] = useState<number>(1)
+  const [selectedLetter, setSelectedLetter] = useState<string | null>(null)
+  const [connectionStatus, setConnectionStatus] =
+    useState<ConnectionStatus>('disconnected')
+  const [copySuccess, setCopySuccess] = useState<boolean>(false)
+  const [difficulty, setDifficulty] = useState<Difficulty>('easy')
+
+  const wsRef = useRef<WebSocket | null>(null)
+  const timerRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Categories for the game
+  const categories: string[] = [
+    'Animals',
+    'Foods',
+    'Countries',
+    'Movies',
+    'Sports',
+    'Colors',
+    'Professions',
+    'Things in a Kitchen',
+    'School Subjects',
+    'Board Games',
+    'Fruits',
+    'Vegetables',
+    'Car Brands',
+    'TV Shows',
+    'Books',
+    'Things You Wear',
+    'Musical Instruments',
+    'Things in Nature',
+    'Superheroes',
+    'Pizza Toppings',
+    'Things in Space',
+    'Board Game Mechanics',
   ]
 
-  const sendWebSocketMessage = (message: WebSocketMessage): void => {
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify(message))
-    }
-  }
+  // Letters arranged in a grid - now using difficulty-based sets
+  const letters: string[] = LETTER_SETS[difficulty]
 
-  const handleTimeUp = useCallback((): void => {
+  const handleTimeUp = (): void => {
     if (activePlayers[currentPlayerIndex] === playerName) {
       sendWebSocketMessage({
         type: 'TIME_UP',
       })
     }
-  }, [activePlayers, currentPlayerIndex, playerName])
+  }
 
   // WebSocket connection
   useEffect(() => {
@@ -129,8 +196,8 @@ const KiaTereGame: React.FC = () => {
   }, [timeLeft, isTimerRunning, handleTimeUp])
 
   const connectWebSocket = (): void => {
-    // Replace with your WebSocket server URL
-    const wsUrl = 'ws://10.0.0.3:9191'
+    // Use the current host and port 9191
+    const wsUrl = `ws://${window.location.hostname}:9191`
     wsRef.current = new WebSocket(wsUrl)
 
     wsRef.current.onopen = () => {
@@ -206,6 +273,7 @@ const KiaTereGame: React.FC = () => {
         setTimeLeft(message.gameState.timeLeft)
         setIsTimerRunning(message.gameState.isTimerRunning)
         setRoundActive(message.gameState.roundActive)
+        setDifficulty(message.gameState.difficulty || 'easy')
         setSelectedLetter(null)
         break
 
@@ -216,6 +284,9 @@ const KiaTereGame: React.FC = () => {
         setTimeLeft(message.gameState.timeLeft)
         setIsTimerRunning(message.gameState.isTimerRunning)
         setSelectedLetter(null)
+        if (message.gameState.difficulty) {
+          setDifficulty(message.gameState.difficulty)
+        }
         break
 
       case 'TIMER_UPDATE':
@@ -237,6 +308,12 @@ const KiaTereGame: React.FC = () => {
       case 'ERROR':
         alert(message.message)
         break
+    }
+  }
+
+  const sendWebSocketMessage = (message: WebSocketMessage): void => {
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify(message))
     }
   }
 
@@ -267,6 +344,7 @@ const KiaTereGame: React.FC = () => {
     if (!isHost) return
     sendWebSocketMessage({
       type: 'START_GAME',
+      difficulty,
     })
   }
 
@@ -311,6 +389,7 @@ const KiaTereGame: React.FC = () => {
     setRoundActive(false)
     setActivePlayers([])
     setRoundNumber(1)
+    setDifficulty('easy')
     if (wsRef.current) {
       wsRef.current.close()
     }
@@ -332,6 +411,17 @@ const KiaTereGame: React.FC = () => {
       setCopySuccess(true)
       setTimeout(() => setCopySuccess(false), 2000)
     }
+  }
+
+  const handleDifficultyChange = (newDifficulty: Difficulty): void => {
+    if (!isHost) return
+    // Update local state immediately
+    setDifficulty(newDifficulty)
+    // Send to server
+    sendWebSocketMessage({
+      type: 'SET_DIFFICULTY',
+      difficulty: newDifficulty,
+    })
   }
 
   // Main Menu
@@ -487,15 +577,61 @@ const KiaTereGame: React.FC = () => {
 
           <div className='space-y-3'>
             {isHost && (
-              <button
-                onClick={startGame}
-                disabled={
-                  players.length < 2 || connectionStatus !== 'connected'
-                }
-                className='w-full py-3 bg-teal-600 text-white rounded-lg font-semibold hover:bg-teal-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2'>
-                <Play className='w-5 h-5' />
-                Start Game
-              </button>
+              <>
+                <div className='mb-4'>
+                  <label className='block text-sm font-medium text-slate-700 mb-2'>
+                    Difficulty Level
+                  </label>
+                  <div className='flex gap-2'>
+                    <button
+                      onClick={() => handleDifficultyChange('easy')}
+                      className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
+                        difficulty === 'easy'
+                          ? 'bg-green-500 text-white'
+                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                      }`}>
+                      Easy ({LETTER_SETS.easy.length} letters)
+                    </button>
+                    <button
+                      onClick={() => handleDifficultyChange('hard')}
+                      className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
+                        difficulty === 'hard'
+                          ? 'bg-red-500 text-white'
+                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                      }`}>
+                      Hard ({LETTER_SETS.hard.length} letters)
+                    </button>
+                  </div>
+                  <div className='mt-2 text-xs text-slate-600'>
+                    {difficulty === 'easy'
+                      ? 'Common letters only - easier to find words'
+                      : 'All letters including Q, X, Z - more challenging'}
+                  </div>
+                </div>
+
+                <button
+                  onClick={startGame}
+                  disabled={
+                    players.length < 2 || connectionStatus !== 'connected'
+                  }
+                  className='w-full py-3 bg-teal-600 text-white rounded-lg font-semibold hover:bg-teal-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2'>
+                  <Play className='w-5 h-5' />
+                  Start Game ({difficulty} mode)
+                </button>
+              </>
+            )}
+
+            {!isHost && (
+              <div className='text-center p-4 bg-slate-50 rounded-lg'>
+                <p className='text-slate-600 mb-2'>
+                  Waiting for host to start the game
+                </p>
+                <p className='text-sm text-slate-500'>
+                  Difficulty:{' '}
+                  <span className='font-semibold capitalize'>{difficulty}</span>
+                  ({LETTER_SETS[difficulty].length} letters)
+                </p>
+              </div>
             )}
 
             <button
@@ -597,6 +733,17 @@ const KiaTereGame: React.FC = () => {
               <p className='text-2xl font-bold text-cyan-600 bg-cyan-100 px-4 py-2 rounded-lg inline-block'>
                 {currentCategory}
               </p>
+              <div className='mt-2 text-sm text-slate-600'>
+                <span className='font-medium'>Difficulty:</span>
+                <span
+                  className={`ml-1 px-2 py-1 rounded text-xs font-semibold ${
+                    difficulty === 'easy'
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-red-100 text-red-800'
+                  }`}>
+                  {difficulty.toUpperCase()} ({letters.length} letters)
+                </span>
+              </div>
             </div>
 
             {roundActive && (
@@ -652,7 +799,10 @@ const KiaTereGame: React.FC = () => {
 
           {/* Letter Grid */}
           <div className='max-w-2xl mx-auto mb-8'>
-            <div className='grid grid-cols-6 gap-3 sm:gap-4'>
+            <div
+              className={`grid gap-3 sm:gap-4 ${
+                letters.length <= 18 ? 'grid-cols-6' : 'grid-cols-6'
+              }`}>
               {letters.map((letter) => {
                 const isUsed = usedLetters.has(letter)
                 const isSelected = selectedLetter === letter && isMyTurn
