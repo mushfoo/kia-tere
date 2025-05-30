@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import {
   Play,
+  Pause,
   RotateCcw,
   Users,
   Trophy,
@@ -92,7 +93,7 @@ const LETTER_SETS = {
     'Y',
     'Z',
   ], // All 26 letters - includes challenging letters like Q, X, Z
-}
+} as const
 
 const KiaTereGame: React.FC = () => {
   // Game state
@@ -148,15 +149,7 @@ const KiaTereGame: React.FC = () => {
   ]
 
   // Letters arranged in a grid - now using difficulty-based sets
-  const letters: string[] = LETTER_SETS[difficulty]
-
-  const handleTimeUp = (): void => {
-    if (activePlayers[currentPlayerIndex] === playerName) {
-      sendWebSocketMessage({
-        type: 'TIME_UP',
-      })
-    }
-  }
+  const letters: readonly string[] = LETTER_SETS[difficulty]
 
   // WebSocket connection
   useEffect(() => {
@@ -170,17 +163,35 @@ const KiaTereGame: React.FC = () => {
     }
   }, [])
 
+  const sendWebSocketMessage = useCallback(
+    (message: WebSocketMessage): void => {
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        wsRef.current.send(JSON.stringify(message))
+      }
+    },
+    []
+  )
+
+  const handleTimeUp = useCallback((): void => {
+    if (activePlayers[currentPlayerIndex] === playerName) {
+      sendWebSocketMessage({
+        type: 'TIME_UP',
+      })
+    }
+  }, [activePlayers, currentPlayerIndex, playerName, sendWebSocketMessage])
+
   // Timer effect
   useEffect(() => {
     if (isTimerRunning && timeLeft > 0) {
       timerRef.current = setTimeout(() => {
-        setTimeLeft(timeLeft - 1)
+        const newTime = timeLeft - 1
+        setTimeLeft(newTime)
         // Send timer update to other players
         if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
           wsRef.current.send(
             JSON.stringify({
               type: 'TIMER_UPDATE',
-              timeLeft: timeLeft - 1,
+              timeLeft: newTime,
             })
           )
         }
@@ -195,9 +206,20 @@ const KiaTereGame: React.FC = () => {
     }
   }, [timeLeft, isTimerRunning, handleTimeUp])
 
+  // Clear timer when switching players to prevent flashing
+  useEffect(() => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current)
+    }
+    // Reset timer immediately when it's not the current player's turn
+    if (activePlayers[currentPlayerIndex] !== playerName && isTimerRunning) {
+      setTimeLeft(10)
+    }
+  }, [currentPlayerIndex, activePlayers, playerName, isTimerRunning])
+
   const connectWebSocket = (): void => {
-    // Use the current host and port 9191
-    const wsUrl = `ws://${window.location.hostname}:9191`
+    // Replace with your WebSocket server URL
+    const wsUrl = 'ws://10.0.0.3:9191'
     wsRef.current = new WebSocket(wsUrl)
 
     wsRef.current.onopen = () => {
@@ -281,16 +303,16 @@ const KiaTereGame: React.FC = () => {
         setActivePlayers(message.gameState.activePlayers)
         setCurrentPlayerIndex(message.gameState.currentPlayerIndex)
         setUsedLetters(new Set(message.gameState.usedLetters))
-        setTimeLeft(message.gameState.timeLeft)
+        setTimeLeft(10) // Always reset to 10 for clean state
         setIsTimerRunning(message.gameState.isTimerRunning)
         setSelectedLetter(null)
-        if (message.gameState.difficulty) {
-          setDifficulty(message.gameState.difficulty)
-        }
         break
 
       case 'TIMER_UPDATE':
-        setTimeLeft(message.timeLeft)
+        // Only update timer if it's not my turn (to avoid conflicts)
+        if (activePlayers[currentPlayerIndex] !== playerName) {
+          setTimeLeft(message.timeLeft)
+        }
         break
 
       case 'ROUND_END':
@@ -308,12 +330,6 @@ const KiaTereGame: React.FC = () => {
       case 'ERROR':
         alert(message.message)
         break
-    }
-  }
-
-  const sendWebSocketMessage = (message: WebSocketMessage): void => {
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify(message))
     }
   }
 
@@ -411,17 +427,6 @@ const KiaTereGame: React.FC = () => {
       setCopySuccess(true)
       setTimeout(() => setCopySuccess(false), 2000)
     }
-  }
-
-  const handleDifficultyChange = (newDifficulty: Difficulty): void => {
-    if (!isHost) return
-    // Update local state immediately
-    setDifficulty(newDifficulty)
-    // Send to server
-    sendWebSocketMessage({
-      type: 'SET_DIFFICULTY',
-      difficulty: newDifficulty,
-    })
   }
 
   // Main Menu
@@ -584,7 +589,7 @@ const KiaTereGame: React.FC = () => {
                   </label>
                   <div className='flex gap-2'>
                     <button
-                      onClick={() => handleDifficultyChange('easy')}
+                      onClick={() => setDifficulty('easy')}
                       className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
                         difficulty === 'easy'
                           ? 'bg-green-500 text-white'
@@ -593,7 +598,7 @@ const KiaTereGame: React.FC = () => {
                       Easy ({LETTER_SETS.easy.length} letters)
                     </button>
                     <button
-                      onClick={() => handleDifficultyChange('hard')}
+                      onClick={() => setDifficulty('hard')}
                       className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
                         difficulty === 'hard'
                           ? 'bg-red-500 text-white'

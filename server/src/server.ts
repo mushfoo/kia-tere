@@ -219,7 +219,7 @@ class GameStateManager {
     room.gameState.currentPlayerIndex =
       (room.gameState.currentPlayerIndex + 1) %
       room.gameState.activePlayers.length
-    room.gameState.timeLeft = 10
+    room.gameState.timeLeft = 10 // Fresh 10 seconds for next player
     room.gameState.isTimerRunning = true // Auto-start next turn
 
     return room
@@ -251,7 +251,7 @@ class GameStateManager {
       room.gameState.currentPlayerIndex = 0
     }
 
-    // Continue with next player
+    // Continue with next player - fresh timer
     room.gameState.timeLeft = 10
     room.gameState.isTimerRunning = true
 
@@ -284,6 +284,7 @@ class GameStateManager {
     return { type: 'roundEnd', room }
   }
 
+  // Utility methods
   generateRoomCode(): string {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
     let result = ''
@@ -321,6 +322,7 @@ class GameStateManager {
     return categories[Math.floor(Math.random() * categories.length)]
   }
 
+  // Cleanup old rooms (can be enhanced with database persistence)
   cleanupRooms(): void {
     const now = Date.now()
     const ROOM_TIMEOUT = 30 * 60 * 1000 // 30 minutes
@@ -340,6 +342,7 @@ class GameStateManager {
     }
   }
 
+  // Future database integration points
   async saveRoom(room: Room): Promise<void> {
     // TODO: Save room state to database
     // await database.rooms.upsert(room);
@@ -356,6 +359,7 @@ class GameStateManager {
     // await database.events.create({ roomCode, event, timestamp: Date.now() });
   }
 
+  // Getters for WebSocket server
   getPlayerConnection(playerName: string): ExtendedWebSocket | undefined {
     return this.playerConnections.get(playerName)
   }
@@ -380,13 +384,7 @@ class KiaTereServer {
     this.port = port
     this.gameManager = new GameStateManager()
     this.server = createServer()
-    this.wss = new WebSocket.Server({
-      server: this.server,
-      // Add CORS headers
-      verifyClient: (info, callback) => {
-        callback(true)
-      },
-    })
+    this.wss = new WebSocket.Server({ server: this.server })
 
     this.setupWebSocketHandlers()
     this.startCleanupInterval()
@@ -424,27 +422,35 @@ class KiaTereServer {
       case 'CREATE_ROOM':
         this.handleCreateRoom(ws, message)
         break
+
       case 'JOIN_ROOM':
         this.handleJoinRoom(ws, message)
         break
+
       case 'START_GAME':
         this.handleStartGame(ws, message)
         break
+
       case 'START_TURN':
         this.handleStartTurn(ws, message)
         break
+
       case 'END_TURN':
         this.handleEndTurn(ws, message)
         break
+
       case 'TIME_UP':
         this.handleTimeUp(ws, message)
         break
+
       case 'TIMER_UPDATE':
         this.handleTimerUpdate(ws, message)
         break
+
       case 'SET_DIFFICULTY':
         this.handleSetDifficulty(ws, message)
         break
+
       default:
         this.sendError(ws, 'Unknown message type')
     }
@@ -633,7 +639,12 @@ class KiaTereServer {
     const room = this.gameManager.getRoom(ws.roomCode!)
     if (!room) return
 
-    // Broadcast timer update to other players
+    // Only allow timer updates from the current player
+    const currentPlayer =
+      room.gameState.activePlayers[room.gameState.currentPlayerIndex]
+    if (currentPlayer !== ws.playerName) return
+
+    // Broadcast timer update to other players only
     this.broadcastToRoom(
       ws.roomCode!,
       {
@@ -685,6 +696,7 @@ class KiaTereServer {
     }
   }
 
+  // Utility methods
   private send(ws: ExtendedWebSocket, message: WebSocketMessage): void {
     if (ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify(message))
@@ -726,7 +738,7 @@ class KiaTereServer {
   start(): void {
     this.server.listen(this.port, () => {
       console.log(`Kia Tere WebSocket server running on port ${this.port}`)
-      console.log(`WebSocket URL: ws://localhost:${this.port}`)
+      console.log(`WebSocket URL: ws://10.0.0.3:${this.port}`)
     })
   }
 }
