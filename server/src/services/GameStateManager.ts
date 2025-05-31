@@ -1,25 +1,25 @@
 import {
   Room,
-  GameState,
   ExtendedWebSocket,
   EliminationResult,
   Difficulty,
-} from '../types'
-import { GAME_CONSTANTS, CATEGORIES } from '../constants'
+} from "../types";
+import { GAME_CONSTANTS } from "../constants";
 import {
   generateRoomCode,
   createInitialGameState,
   shouldCleanupRoom,
   getRandomCategory,
-} from '../utils/roomUtils'
+} from "../utils/roomUtils";
 
 export class GameStateManager {
-  private rooms: Map<string, Room> = new Map()
-  private playerConnections: Map<string, ExtendedWebSocket> = new Map()
+  private rooms: Map<string, Room> = new Map();
+  private playerConnections: Map<string, ExtendedWebSocket> = new Map();
+  private roomTimers: Map<string, NodeJS.Timeout> = new Map();
 
   // Room management
   createRoom(hostName: string): Room {
-    const roomCode = generateRoomCode()
+    const roomCode = generateRoomCode();
     const room: Room = {
       roomCode,
       players: [hostName],
@@ -28,168 +28,297 @@ export class GameStateManager {
       gameState: createInitialGameState([hostName]),
       createdAt: Date.now(),
       lastActivity: Date.now(),
-    }
+    };
 
-    this.rooms.set(roomCode, room)
-    return room
+    this.rooms.set(roomCode, room);
+    return room;
   }
 
   joinRoom(roomCode: string, playerName: string): Room | null {
-    const room = this.rooms.get(roomCode)
-    if (!room) return null
+    const room = this.rooms.get(roomCode);
+    if (!room) return null;
 
     // Check if player is rejoining
-    const existingPlayerIndex = room.players.indexOf(playerName)
+    const existingPlayerIndex = room.players.indexOf(playerName);
     if (existingPlayerIndex !== -1) {
       // Player is rejoining
       if (!room.connectedPlayers.includes(playerName)) {
-        room.connectedPlayers.push(playerName)
+        room.connectedPlayers.push(playerName);
       }
     } else {
       // New player joining
-      room.players.push(playerName)
-      room.connectedPlayers.push(playerName)
+      room.players.push(playerName);
+      room.connectedPlayers.push(playerName);
     }
 
-    room.lastActivity = Date.now()
-    return room
+    room.lastActivity = Date.now();
+    return room;
   }
 
   removePlayer(roomCode: string, playerName: string): Room | null {
-    const room = this.rooms.get(roomCode)
-    if (!room) return null
+    const room = this.rooms.get(roomCode);
+    if (!room) return null;
 
     // Remove from connected players
     room.connectedPlayers = room.connectedPlayers.filter(
-      (p) => p !== playerName
-    )
-    room.lastActivity = Date.now()
+      (p) => p !== playerName,
+    );
+    room.lastActivity = Date.now();
 
     // If no players connected, mark for cleanup (but don't delete immediately)
     if (room.connectedPlayers.length === 0) {
-      room.emptyAt = Date.now()
+      room.emptyAt = Date.now();
     }
 
-    return room
+    return room;
   }
 
   getRoom(roomCode: string): Room | null {
-    return this.rooms.get(roomCode) || null
+    return this.rooms.get(roomCode) || null;
+  }
+
+  // Timer management methods
+  private startServerTimer(roomCode: string): void {
+    // Clear any existing timer for this room
+    this.clearTimer(roomCode);
+
+    const timer = setInterval(() => {
+      const room = this.rooms.get(roomCode);
+      if (!room || !room.gameState.isTimerRunning) {
+        this.clearTimer(roomCode);
+        return;
+      }
+
+      room.gameState.timeLeft--;
+
+      // Broadcast timer update to all players in room
+      this.broadcastToRoom(roomCode, {
+        type: "TIMER_UPDATE",
+        timeLeft: room.gameState.timeLeft,
+      });
+
+      // Check if time is up
+      if (room.gameState.timeLeft <= 0) {
+        this.clearTimer(roomCode);
+        // Handle time up logic
+        const eliminationResult = this.eliminatePlayer(roomCode);
+        if (eliminationResult) {
+          this.handleEliminationResult(roomCode, eliminationResult);
+        }
+      }
+    }, 1000);
+
+    this.roomTimers.set(roomCode, timer);
+  }
+
+  private clearTimer(roomCode: string): void {
+    const timer = this.roomTimers.get(roomCode);
+    if (timer) {
+      clearInterval(timer);
+      this.roomTimers.delete(roomCode);
+    }
+  }
+
+  private broadcastToRoom(roomCode: string, message: any): void {
+    const room = this.rooms.get(roomCode);
+    if (!room) return;
+
+    room.connectedPlayers.forEach((playerName) => {
+      const connection = this.playerConnections.get(playerName);
+      if (connection && connection.readyState === 1) {
+        // WebSocket.OPEN = 1
+        connection.send(JSON.stringify(message));
+      }
+    });
+  }
+
+  private handleEliminationResult(
+    roomCode: string,
+    result: EliminationResult,
+  ): void {
+    switch (result.type) {
+      case "continue":
+        this.broadcastToRoom(roomCode, {
+          type: "GAME_STATE_UPDATE",
+          gameState: result.room.gameState,
+        });
+        // Start timer for next player
+        this.startServerTimer(roomCode);
+        break;
+
+      case "roundEnd":
+        // Broadcast round end with full game state
+        this.broadcastToRoom(roomCode, {
+          type: "ROUND_END",
+          gameState: result.room.gameState, // Include full game state
+          roundWins: result.room.gameState.roundWins,
+          roundNumber: result.room.gameState.roundNumber,
+        });
+        break;
+
+      case "gameEnd":
+        this.broadcastToRoom(roomCode, {
+          type: "GAME_END",
+          roundWins: result.room.gameState.roundWins,
+          winner: result.winner,
+        });
+        this.clearTimer(roomCode);
+        break;
+    }
   }
 
   // Game state management
-  startGame(roomCode: string, difficulty: Difficulty = 'easy'): Room | null {
-    const room = this.rooms.get(roomCode)
-    if (!room) return null
+  startGame(roomCode: string, difficulty: Difficulty = "easy"): Room | null {
+    const room = this.rooms.get(roomCode);
+    if (!room) return null;
 
     // Initialize game state
-    room.gameState = createInitialGameState(room.players)
-    room.gameState.gameStarted = true
-    room.gameState.roundActive = true
-    room.gameState.currentCategory = getRandomCategory()
-    room.gameState.difficulty = difficulty
+    room.gameState = createInitialGameState(room.players);
+    room.gameState.gameStarted = true;
+    room.gameState.roundActive = true;
+    room.gameState.currentCategory = getRandomCategory();
+    room.gameState.difficulty = difficulty;
 
-    return room
+    return room;
   }
 
   startTurn(roomCode: string): Room | null {
-    const room = this.rooms.get(roomCode)
-    if (!room) return null
+    const room = this.rooms.get(roomCode);
+    if (!room) return null;
 
-    room.gameState.isTimerRunning = true
-    room.gameState.timeLeft = GAME_CONSTANTS.TURN_TIME
-    return room
+    room.gameState.isTimerRunning = true;
+    room.gameState.timeLeft = GAME_CONSTANTS.TURN_TIME;
+
+    // Start the server-side timer
+    this.startServerTimer(roomCode);
+
+    return room;
   }
 
   endTurn(roomCode: string, selectedLetter: string): Room | null {
-    const room = this.rooms.get(roomCode)
-    if (!room) return null
+    const room = this.rooms.get(roomCode);
+    if (!room) return null;
+
+    // Clear the current timer
+    this.clearTimer(roomCode);
 
     // Only allow if timer is running
     if (!room.gameState.isTimerRunning) {
-      return room
+      return room;
     }
 
     // Add letter to used letters
-    room.gameState.usedLetters.push(selectedLetter)
+    room.gameState.usedLetters.push(selectedLetter);
 
     // Move to next player
     room.gameState.currentPlayerIndex =
       (room.gameState.currentPlayerIndex + 1) %
-      room.gameState.activePlayers.length
-    room.gameState.timeLeft = GAME_CONSTANTS.TURN_TIME // Fresh timer for next player
-    room.gameState.isTimerRunning = true // Auto-start next turn
+      room.gameState.activePlayers.length;
 
-    return room
+    room.gameState.timeLeft = GAME_CONSTANTS.TURN_TIME;
+    room.gameState.isTimerRunning = true;
+
+    // Start timer for next player
+    this.startServerTimer(roomCode);
+
+    return room;
   }
 
   eliminatePlayer(roomCode: string): EliminationResult | null {
-    const room = this.rooms.get(roomCode)
-    if (!room) return null
+    const room = this.rooms.get(roomCode);
+    if (!room) return null;
+
+    // Clear the current timer
+    this.clearTimer(roomCode);
 
     const currentPlayer =
-      room.gameState.activePlayers[room.gameState.currentPlayerIndex]
+      room.gameState.activePlayers[room.gameState.currentPlayerIndex];
 
     // Remove current player from active players
     room.gameState.activePlayers = room.gameState.activePlayers.filter(
-      (name) => name !== currentPlayer
-    )
+      (name) => name !== currentPlayer,
+    );
 
-    room.gameState.isTimerRunning = false
+    room.gameState.isTimerRunning = false;
 
     // Check if round is over
     if (room.gameState.activePlayers.length === 1) {
-      return this.endRound(roomCode)
+      return this.endRound(roomCode);
     }
 
     // Adjust current player index
     if (
       room.gameState.currentPlayerIndex >= room.gameState.activePlayers.length
     ) {
-      room.gameState.currentPlayerIndex = 0
+      room.gameState.currentPlayerIndex = 0;
     }
 
     // Continue with next player - fresh timer
-    room.gameState.timeLeft = GAME_CONSTANTS.TURN_TIME
-    room.gameState.isTimerRunning = true
+    room.gameState.timeLeft = GAME_CONSTANTS.TURN_TIME;
+    room.gameState.isTimerRunning = true;
 
-    return { type: 'continue', room }
+    return { type: "continue", room };
   }
 
   endRound(roomCode: string): EliminationResult | null {
-    const room = this.rooms.get(roomCode)
-    if (!room) return null
+    const room = this.rooms.get(roomCode);
+    if (!room) return null;
 
-    const winner = room.gameState.activePlayers[0]
+    // Clear any existing timer
+    this.clearTimer(roomCode);
+
+    const winner = room.gameState.activePlayers[0];
     room.gameState.roundWins[winner] =
-      (room.gameState.roundWins[winner] || 0) + 1
+      (room.gameState.roundWins[winner] || 0) + 1;
 
     // Check if game is over (first to 3 wins)
     if (room.gameState.roundWins[winner] >= GAME_CONSTANTS.WINS_TO_END_GAME) {
-      return { type: 'gameEnd', room, winner }
+      room.gameState.roundActive = false; // End the game
+      return { type: "gameEnd", room, winner };
     }
 
-    // Start new round
-    room.gameState.roundNumber++
-    room.gameState.activePlayers = [...room.gameState.players]
-    room.gameState.currentPlayerIndex = 0
-    room.gameState.usedLetters = []
-    room.gameState.timeLeft = GAME_CONSTANTS.TURN_TIME
-    room.gameState.isTimerRunning = false
-    room.gameState.roundActive = true
-    room.gameState.currentCategory = getRandomCategory()
+    // Calculate next starting player - the player after the winner in the original rotation
+    const winnerIndexInFullPlayers = room.gameState.players.indexOf(winner);
+    const nextPlayerIndex =
+      (winnerIndexInFullPlayers + 1) % room.gameState.players.length;
 
-    return { type: 'roundEnd', room }
+    // Start new round
+    room.gameState.roundNumber++;
+    room.gameState.activePlayers = [...room.gameState.players];
+    room.gameState.currentPlayerIndex = nextPlayerIndex; // Start with next player, not 0
+    room.gameState.usedLetters = [];
+    room.gameState.timeLeft = GAME_CONSTANTS.TURN_TIME;
+    room.gameState.isTimerRunning = false; // Timer not running yet - player needs to start turn
+    room.gameState.roundActive = true; // Keep this TRUE for new round
+    room.gameState.currentCategory = getRandomCategory();
+
+    return { type: "roundEnd", room };
   }
 
   // Cleanup old rooms
   cleanupRooms(): void {
     for (const [roomCode, room] of this.rooms.entries()) {
       if (shouldCleanupRoom(room)) {
-        this.rooms.delete(roomCode)
-        console.log(`Cleaned up room: ${roomCode}`)
+        this.clearTimer(roomCode); // Clear timer before deleting room
+        this.rooms.delete(roomCode);
+        console.log(`Cleaned up room: ${roomCode}`);
       }
     }
+  }
+
+  // Test cleanup method - clears all timers and state
+  cleanup(): void {
+    // Clear all active timers
+    for (const [roomCode] of this.roomTimers.entries()) {
+      this.clearTimer(roomCode);
+    }
+
+    // Clear all rooms and connections
+    this.rooms.clear();
+    this.playerConnections.clear();
+    this.roomTimers.clear();
+
+    console.log("GameStateManager cleanup completed");
   }
 
   // Future database integration points
@@ -201,7 +330,7 @@ export class GameStateManager {
   async loadRoom(roomCode: string): Promise<Room | null> {
     // TODO: Load room from database
     // return await database.rooms.findOne({ roomCode });
-    return this.rooms.get(roomCode) || null
+    return this.rooms.get(roomCode) || null;
   }
 
   async saveGameEvent(roomCode: string, event: any): Promise<void> {
@@ -211,14 +340,14 @@ export class GameStateManager {
 
   // Getters for WebSocket server
   getPlayerConnection(playerName: string): ExtendedWebSocket | undefined {
-    return this.playerConnections.get(playerName)
+    return this.playerConnections.get(playerName);
   }
 
   setPlayerConnection(playerName: string, ws: ExtendedWebSocket): void {
-    this.playerConnections.set(playerName, ws)
+    this.playerConnections.set(playerName, ws);
   }
 
   removePlayerConnection(playerName: string): void {
-    this.playerConnections.delete(playerName)
+    this.playerConnections.delete(playerName);
   }
 }
