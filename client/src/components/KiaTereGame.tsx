@@ -1,7 +1,6 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   Play,
-  Pause,
   RotateCcw,
   Users,
   Trophy,
@@ -11,475 +10,433 @@ import {
   WifiOff,
   Copy,
   Check,
-} from 'lucide-react'
-
-// Types
-interface Player {
-  name: string
-  isConnected: boolean
-}
-
-interface GameState {
-  players: string[]
-  activePlayers: string[]
-  currentPlayerIndex: number
-  roundWins: Record<string, number>
-  currentCategory: string
-  usedLetters: string[]
-  timeLeft: number
-  isTimerRunning: boolean
-  roundActive: boolean
-  roundNumber: number
-  gameStarted: boolean
-  difficulty: 'easy' | 'hard'
-}
+} from "lucide-react";
 
 interface WebSocketMessage {
-  type: string
-  [key: string]: any
+  type: string;
+  [key: string]: any;
 }
 
-type ConnectionStatus = 'connected' | 'connecting' | 'disconnected' | 'error'
-type GamePhase = 'menu' | 'lobby' | 'playing' | 'gameOver'
-type Difficulty = 'easy' | 'hard'
+type ConnectionStatus = "connected" | "connecting" | "disconnected" | "error";
+type GamePhase = "menu" | "lobby" | "playing" | "gameOver";
+type Difficulty = "easy" | "hard";
 
 // Letter difficulty constants based on frequency and word availability
 const LETTER_SETS = {
   easy: [
-    'A',
-    'B',
-    'C',
-    'D',
-    'E',
-    'F',
-    'G',
-    'H',
-    'I',
-    'L',
-    'M',
-    'N',
-    'O',
-    'P',
-    'R',
-    'S',
-    'T',
-    'W',
+    "A",
+    "B",
+    "C",
+    "D",
+    "E",
+    "F",
+    "G",
+    "H",
+    "I",
+    "L",
+    "M",
+    "N",
+    "O",
+    "P",
+    "R",
+    "S",
+    "T",
+    "W",
   ], // 18 common letters - easier to find words
   hard: [
-    'A',
-    'B',
-    'C',
-    'D',
-    'E',
-    'F',
-    'G',
-    'H',
-    'I',
-    'J',
-    'K',
-    'L',
-    'M',
-    'N',
-    'O',
-    'P',
-    'Q',
-    'R',
-    'S',
-    'T',
-    'U',
-    'V',
-    'W',
-    'X',
-    'Y',
-    'Z',
+    "A",
+    "B",
+    "C",
+    "D",
+    "E",
+    "F",
+    "G",
+    "H",
+    "I",
+    "J",
+    "K",
+    "L",
+    "M",
+    "N",
+    "O",
+    "P",
+    "Q",
+    "R",
+    "S",
+    "T",
+    "U",
+    "V",
+    "W",
+    "X",
+    "Y",
+    "Z",
   ], // All 26 letters - includes challenging letters like Q, X, Z
-} as const
+} as const;
 
 const KiaTereGame: React.FC = () => {
   // Game state
-  const [gameState, setGameState] = useState<GamePhase>('menu')
-  const [isHost, setIsHost] = useState<boolean>(false)
-  const [roomCode, setRoomCode] = useState<string>('')
-  const [joinCode, setJoinCode] = useState<string>('')
-  const [playerName, setPlayerName] = useState<string>('')
-  const [players, setPlayers] = useState<string[]>([])
-  const [connectedPlayers, setConnectedPlayers] = useState<string[]>([])
-  const [currentPlayerIndex, setCurrentPlayerIndex] = useState<number>(0)
-  const [roundWins, setRoundWins] = useState<Record<string, number>>({})
-  const [currentCategory, setCurrentCategory] = useState<string>('')
-  const [usedLetters, setUsedLetters] = useState<Set<string>>(new Set())
-  const [timeLeft, setTimeLeft] = useState<number>(10)
-  const [isTimerRunning, setIsTimerRunning] = useState<boolean>(false)
-  const [roundActive, setRoundActive] = useState<boolean>(false)
-  const [activePlayers, setActivePlayers] = useState<string[]>([])
-  const [roundNumber, setRoundNumber] = useState<number>(1)
-  const [selectedLetter, setSelectedLetter] = useState<string | null>(null)
+  const [gameState, setGameState] = useState<GamePhase>("menu");
+  const [isHost, setIsHost] = useState<boolean>(false);
+  const [roomCode, setRoomCode] = useState<string>("");
+  const [joinCode, setJoinCode] = useState<string>("");
+  const [playerName, setPlayerName] = useState<string>("");
+  const [players, setPlayers] = useState<string[]>([]);
+  const [connectedPlayers, setConnectedPlayers] = useState<string[]>([]);
+  const [currentPlayerIndex, setCurrentPlayerIndex] = useState<number>(0);
+  const [roundWins, setRoundWins] = useState<Record<string, number>>({});
+  const [currentCategory, setCurrentCategory] = useState<string>("");
+  const [usedLetters, setUsedLetters] = useState<Set<string>>(new Set());
+  const [timeLeft, setTimeLeft] = useState<number>(10);
+  const [isTimerRunning, setIsTimerRunning] = useState<boolean>(false);
+  const [roundActive, setRoundActive] = useState<boolean>(false);
+  const [activePlayers, setActivePlayers] = useState<string[]>([]);
+  const [roundNumber, setRoundNumber] = useState<number>(1);
+  const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
   const [connectionStatus, setConnectionStatus] =
-    useState<ConnectionStatus>('disconnected')
-  const [copySuccess, setCopySuccess] = useState<boolean>(false)
-  const [difficulty, setDifficulty] = useState<Difficulty>('easy')
+    useState<ConnectionStatus>("disconnected");
+  const [copySuccess, setCopySuccess] = useState<boolean>(false);
+  const [difficulty, setDifficulty] = useState<Difficulty>("easy");
 
-  const wsRef = useRef<WebSocket | null>(null)
-  const timerRef = useRef<NodeJS.Timeout | null>(null)
+  const wsRef = useRef<WebSocket | null>(null);
 
   // Categories for the game
   const categories: string[] = [
-    'Animals',
-    'Foods',
-    'Countries',
-    'Movies',
-    'Sports',
-    'Colors',
-    'Professions',
-    'Things in a Kitchen',
-    'School Subjects',
-    'Board Games',
-    'Fruits',
-    'Vegetables',
-    'Car Brands',
-    'TV Shows',
-    'Books',
-    'Things You Wear',
-    'Musical Instruments',
-    'Things in Nature',
-    'Superheroes',
-    'Pizza Toppings',
-    'Things in Space',
-    'Board Game Mechanics',
-  ]
+    "Animals",
+    "Foods",
+    "Countries",
+    "Movies",
+    "Sports",
+    "Colors",
+    "Professions",
+    "Things in a Kitchen",
+    "School Subjects",
+    "Board Games",
+    "Fruits",
+    "Vegetables",
+    "Car Brands",
+    "TV Shows",
+    "Books",
+    "Things You Wear",
+    "Musical Instruments",
+    "Things in Nature",
+    "Superheroes",
+    "Pizza Toppings",
+    "Things in Space",
+    "Board Game Mechanics",
+  ];
 
   // Letters arranged in a grid - now using difficulty-based sets
-  const letters: readonly string[] = LETTER_SETS[difficulty]
+  const letters: readonly string[] = LETTER_SETS[difficulty];
 
-  // WebSocket connection
+  // WebSocket connection cleanup
   useEffect(() => {
     return () => {
       if (wsRef.current) {
-        wsRef.current.close()
+        wsRef.current.close();
       }
-      if (timerRef.current) {
-        clearTimeout(timerRef.current)
-      }
-    }
-  }, [])
+    };
+  }, []);
 
   const sendWebSocketMessage = useCallback(
     (message: WebSocketMessage): void => {
       if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-        wsRef.current.send(JSON.stringify(message))
+        wsRef.current.send(JSON.stringify(message));
       }
     },
-    []
-  )
+    [],
+  );
 
   const handleTimeUp = useCallback((): void => {
-    if (activePlayers[currentPlayerIndex] === playerName) {
-      sendWebSocketMessage({
-        type: 'TIME_UP',
-      })
-    }
-  }, [activePlayers, currentPlayerIndex, playerName, sendWebSocketMessage])
-
-  // Timer effect
-  useEffect(() => {
-    if (isTimerRunning && timeLeft > 0) {
-      timerRef.current = setTimeout(() => {
-        const newTime = timeLeft - 1
-        setTimeLeft(newTime)
-        // Send timer update to other players
-        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-          wsRef.current.send(
-            JSON.stringify({
-              type: 'TIMER_UPDATE',
-              timeLeft: newTime,
-            })
-          )
-        }
-      }, 1000)
-    } else if (timeLeft === 0 && isTimerRunning) {
-      handleTimeUp()
-    }
-    return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current)
-      }
-    }
-  }, [timeLeft, isTimerRunning, handleTimeUp])
-
-  // Clear timer when switching players to prevent flashing
-  useEffect(() => {
-    if (timerRef.current) {
-      clearTimeout(timerRef.current)
-    }
-    // Reset timer immediately when it's not the current player's turn
-    if (activePlayers[currentPlayerIndex] !== playerName && isTimerRunning) {
-      setTimeLeft(10)
-    }
-  }, [currentPlayerIndex, activePlayers, playerName, isTimerRunning])
+    // This is now only for manual timeout if needed
+    // The server handles automatic timeouts
+    sendWebSocketMessage({
+      type: "TIME_UP",
+    });
+  }, [sendWebSocketMessage]);
 
   const connectWebSocket = (): void => {
     // Replace with your WebSocket server URL
-    const wsUrl = 'ws://10.0.0.3:9191'
-    wsRef.current = new WebSocket(wsUrl)
+    const wsUrl = "ws://10.0.0.3:9191";
+    wsRef.current = new WebSocket(wsUrl);
 
     wsRef.current.onopen = () => {
-      setConnectionStatus('connected')
-    }
+      setConnectionStatus("connected");
+    };
 
     wsRef.current.onmessage = (event: MessageEvent) => {
-      const message: WebSocketMessage = JSON.parse(event.data)
-      handleWebSocketMessage(message)
-    }
+      const message: WebSocketMessage = JSON.parse(event.data);
+      handleWebSocketMessage(message);
+    };
 
     wsRef.current.onclose = () => {
-      setConnectionStatus('disconnected')
+      setConnectionStatus("disconnected");
       // Attempt to reconnect after 3 seconds
       setTimeout(() => {
         if (roomCode) {
-          connectWebSocket()
+          connectWebSocket();
           // Rejoin room after reconnection
           setTimeout(() => {
             if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
               wsRef.current.send(
                 JSON.stringify({
-                  type: 'JOIN_ROOM',
+                  type: "JOIN_ROOM",
                   roomCode,
                   playerName,
-                })
-              )
+                }),
+              );
             }
-          }, 100)
+          }, 100);
         }
-      }, 3000)
-    }
+      }, 3000);
+    };
 
     wsRef.current.onerror = () => {
-      setConnectionStatus('error')
-    }
-  }
+      setConnectionStatus("error");
+    };
+  };
 
   const handleWebSocketMessage = (message: WebSocketMessage): void => {
     switch (message.type) {
-      case 'ROOM_CREATED':
-        setRoomCode(message.roomCode)
-        setGameState('lobby')
-        setIsHost(true)
-        break
+      case "ROOM_CREATED":
+        setRoomCode(message.roomCode);
+        setGameState("lobby");
+        setIsHost(true);
+        break;
 
-      case 'ROOM_JOINED':
-        setRoomCode(message.roomCode)
-        setGameState('lobby')
-        setPlayers(message.players)
-        setConnectedPlayers(message.connectedPlayers)
-        break
+      case "ROOM_JOINED":
+        setRoomCode(message.roomCode);
+        setGameState("lobby");
+        setPlayers(message.players);
+        setConnectedPlayers(message.connectedPlayers);
+        break;
 
-      case 'PLAYER_JOINED':
-        setPlayers(message.players)
-        setConnectedPlayers(message.connectedPlayers)
-        break
+      case "PLAYER_JOINED":
+        setPlayers(message.players);
+        setConnectedPlayers(message.connectedPlayers);
+        break;
 
-      case 'PLAYER_LEFT':
-        setPlayers(message.players)
-        setConnectedPlayers(message.connectedPlayers)
-        break
+      case "PLAYER_LEFT":
+        setPlayers(message.players);
+        setConnectedPlayers(message.connectedPlayers);
+        break;
 
-      case 'GAME_STARTED':
-        setGameState('playing')
-        setPlayers(message.gameState.players)
-        setActivePlayers(message.gameState.activePlayers)
-        setCurrentPlayerIndex(message.gameState.currentPlayerIndex)
-        setCurrentCategory(message.gameState.currentCategory)
-        setUsedLetters(new Set(message.gameState.usedLetters))
-        setRoundWins(message.gameState.roundWins)
-        setRoundNumber(message.gameState.roundNumber)
-        setTimeLeft(message.gameState.timeLeft)
-        setIsTimerRunning(message.gameState.isTimerRunning)
-        setRoundActive(message.gameState.roundActive)
-        setDifficulty(message.gameState.difficulty || 'easy')
-        setSelectedLetter(null)
-        break
+      case "GAME_STARTED":
+        setGameState("playing");
+        setPlayers(message.gameState.players);
+        setActivePlayers(message.gameState.activePlayers);
+        setCurrentPlayerIndex(message.gameState.currentPlayerIndex);
+        setCurrentCategory(message.gameState.currentCategory);
+        setUsedLetters(new Set(message.gameState.usedLetters));
+        setRoundWins(message.gameState.roundWins);
+        setRoundNumber(message.gameState.roundNumber);
+        setTimeLeft(message.gameState.timeLeft);
+        setIsTimerRunning(message.gameState.isTimerRunning);
+        setRoundActive(message.gameState.roundActive);
+        setDifficulty(message.gameState.difficulty || "easy");
+        setSelectedLetter(null);
+        break;
 
-      case 'GAME_STATE_UPDATE':
-        setActivePlayers(message.gameState.activePlayers)
-        setCurrentPlayerIndex(message.gameState.currentPlayerIndex)
-        setUsedLetters(new Set(message.gameState.usedLetters))
-        setTimeLeft(10) // Always reset to 10 for clean state
-        setIsTimerRunning(message.gameState.isTimerRunning)
-        setSelectedLetter(null)
-        break
+      case "GAME_STATE_UPDATE":
+        setActivePlayers(message.gameState.activePlayers);
+        setCurrentPlayerIndex(message.gameState.currentPlayerIndex);
+        setUsedLetters(new Set(message.gameState.usedLetters));
+        setTimeLeft(message.gameState.timeLeft); // Use server timer value
+        setIsTimerRunning(message.gameState.isTimerRunning);
+        setSelectedLetter(null);
+        break;
 
-      case 'TIMER_UPDATE':
-        // Only update timer if it's not my turn (to avoid conflicts)
-        if (activePlayers[currentPlayerIndex] !== playerName) {
-          setTimeLeft(message.timeLeft)
+      case "TIMER_UPDATE":
+        // Always update timer from server - no conditions needed
+        setTimeLeft(message.timeLeft);
+        break;
+
+      case "ROUND_END":
+        // Update all game state for new round
+        if (message.gameState) {
+          console.log(`[DEBUG] Updating game state from ROUND_END`);
+          console.log(
+            `[DEBUG] New category: ${message.gameState.currentCategory}`,
+          );
+          console.log(
+            `[DEBUG] Timer: ${message.gameState.timeLeft}s, running: ${message.gameState.isTimerRunning}`,
+          );
+          console.log(`[DEBUG] Round active: ${message.gameState.roundActive}`);
+
+          setActivePlayers(message.gameState.activePlayers);
+          setCurrentPlayerIndex(message.gameState.currentPlayerIndex);
+          setUsedLetters(new Set(message.gameState.usedLetters));
+          setCurrentCategory(message.gameState.currentCategory);
+          setTimeLeft(message.gameState.timeLeft);
+          setIsTimerRunning(message.gameState.isTimerRunning);
+          setRoundActive(message.gameState.roundActive); // Use server value, don't hardcode false!
+        } else {
+          console.log(`[DEBUG] No gameState in ROUND_END message!`);
         }
-        break
 
-      case 'ROUND_END':
-        setRoundWins(message.roundWins)
-        setRoundNumber(message.roundNumber)
-        setRoundActive(false)
-        setIsTimerRunning(false)
-        break
+        setRoundWins(message.roundWins);
+        setRoundNumber(message.roundNumber);
+        setSelectedLetter(null);
+        break;
 
-      case 'GAME_END':
-        setGameState('gameOver')
-        setRoundWins(message.roundWins)
-        break
+      case "GAME_END":
+        setGameState("gameOver");
+        setRoundWins(message.roundWins);
+        break;
 
-      case 'ERROR':
-        alert(message.message)
-        break
+      case "ERROR":
+        alert(message.message);
+        break;
     }
-  }
+  };
 
   const createRoom = (): void => {
-    if (!playerName.trim()) return
-    connectWebSocket()
+    if (!playerName.trim()) return;
+    connectWebSocket();
     setTimeout(() => {
       sendWebSocketMessage({
-        type: 'CREATE_ROOM',
+        type: "CREATE_ROOM",
         playerName: playerName.trim(),
-      })
-    }, 100)
-  }
+      });
+    }, 100);
+  };
 
   const joinRoom = (): void => {
-    if (!playerName.trim() || !joinCode.trim()) return
-    connectWebSocket()
+    if (!playerName.trim() || !joinCode.trim()) return;
+    connectWebSocket();
     setTimeout(() => {
       sendWebSocketMessage({
-        type: 'JOIN_ROOM',
+        type: "JOIN_ROOM",
         roomCode: joinCode.trim().toUpperCase(),
         playerName: playerName.trim(),
-      })
-    }, 100)
-  }
+      });
+    }, 100);
+  };
 
   const startGame = (): void => {
-    if (!isHost) return
+    if (!isHost) return;
     sendWebSocketMessage({
-      type: 'START_GAME',
+      type: "START_GAME",
       difficulty,
-    })
-  }
+    });
+  };
 
   const handleLetterSelect = (letter: string): void => {
-    if (!roundActive || usedLetters.has(letter) || !isTimerRunning) return
-    if (activePlayers[currentPlayerIndex] !== playerName) return
+    if (!roundActive || usedLetters.has(letter) || !isTimerRunning) return;
+    if (activePlayers[currentPlayerIndex] !== playerName) return;
 
     // Toggle letter selection
-    const newSelectedLetter = selectedLetter === letter ? null : letter
-    setSelectedLetter(newSelectedLetter)
-  }
+    const newSelectedLetter = selectedLetter === letter ? null : letter;
+    setSelectedLetter(newSelectedLetter);
+  };
 
   const startTurn = (): void => {
-    if (activePlayers[currentPlayerIndex] !== playerName) return
+    if (activePlayers[currentPlayerIndex] !== playerName) return;
     sendWebSocketMessage({
-      type: 'START_TURN',
-    })
-  }
+      type: "START_TURN",
+    });
+  };
 
   const endTurn = (): void => {
     if (!selectedLetter || activePlayers[currentPlayerIndex] !== playerName)
-      return
+      return;
     sendWebSocketMessage({
-      type: 'END_TURN',
+      type: "END_TURN",
       selectedLetter,
-    })
-  }
+    });
+  };
 
   const resetGame = (): void => {
-    setGameState('menu')
-    setIsHost(false)
-    setRoomCode('')
-    setJoinCode('')
-    setPlayers([])
-    setConnectedPlayers([])
-    setCurrentPlayerIndex(0)
-    setRoundWins({})
-    setUsedLetters(new Set())
-    setSelectedLetter(null)
-    setTimeLeft(10)
-    setIsTimerRunning(false)
-    setRoundActive(false)
-    setActivePlayers([])
-    setRoundNumber(1)
-    setDifficulty('easy')
+    setGameState("menu");
+    setIsHost(false);
+    setRoomCode("");
+    setJoinCode("");
+    setPlayers([]);
+    setConnectedPlayers([]);
+    setCurrentPlayerIndex(0);
+    setRoundWins({});
+    setUsedLetters(new Set());
+    setSelectedLetter(null);
+    setTimeLeft(10);
+    setIsTimerRunning(false);
+    setRoundActive(false);
+    setActivePlayers([]);
+    setRoundNumber(1);
+    setDifficulty("easy");
     if (wsRef.current) {
-      wsRef.current.close()
+      wsRef.current.close();
     }
-  }
+  };
 
   const copyRoomCode = async (): Promise<void> => {
     try {
-      await navigator.clipboard.writeText(roomCode)
-      setCopySuccess(true)
-      setTimeout(() => setCopySuccess(false), 2000)
+      await navigator.clipboard.writeText(roomCode);
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2000);
     } catch (err) {
       // Fallback for browsers that don't support clipboard API
-      const textArea = document.createElement('textarea')
-      textArea.value = roomCode
-      document.body.appendChild(textArea)
-      textArea.select()
-      document.execCommand('copy')
-      document.body.removeChild(textArea)
-      setCopySuccess(true)
-      setTimeout(() => setCopySuccess(false), 2000)
+      const textArea = document.createElement("textarea");
+      textArea.value = roomCode;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textArea);
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2000);
     }
-  }
+  };
 
   // Main Menu
-  if (gameState === 'menu') {
+  if (gameState === "menu") {
     return (
-      <div className='min-h-screen bg-slate-50 p-4'>
-        <div className='max-w-md mx-auto bg-white rounded-2xl shadow-lg border p-6'>
-          <div className='text-center mb-6'>
-            <h1 className='text-3xl font-bold text-slate-800 mb-2'>Kia Tere</h1>
-            <p className='text-slate-600'>Fast-paced multiplayer word game</p>
+      <div className="min-h-screen bg-slate-50 p-4">
+        <div className="max-w-md mx-auto bg-white rounded-2xl shadow-lg border p-6">
+          <div className="text-center mb-6">
+            <h1 className="text-3xl font-bold text-slate-800 mb-2">Kia Tere</h1>
+            <p className="text-slate-600">Fast-paced multiplayer word game</p>
           </div>
 
-          <div className='space-y-4'>
+          <div className="space-y-4">
             <div>
-              <label className='block text-sm font-medium text-slate-700 mb-2'>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
                 Your Name
               </label>
               <input
-                type='text'
+                type="text"
                 value={playerName}
                 onChange={(e) => setPlayerName(e.target.value)}
-                className='w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500'
-                placeholder='Enter your name'
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                placeholder="Enter your name"
                 maxLength={20}
               />
             </div>
 
             <button
               onClick={createRoom}
-              disabled={!playerName.trim() || connectionStatus === 'connecting'}
-              className='w-full py-3 bg-teal-600 text-white rounded-lg font-semibold hover:bg-teal-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors'>
+              disabled={!playerName.trim() || connectionStatus === "connecting"}
+              className="w-full py-3 bg-teal-600 text-white rounded-lg font-semibold hover:bg-teal-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors"
+            >
               Create Room
             </button>
 
-            <div className='relative'>
-              <div className='absolute inset-0 flex items-center'>
-                <div className='w-full border-t border-slate-300' />
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-slate-300" />
               </div>
-              <div className='relative flex justify-center text-sm'>
-                <span className='px-2 bg-white text-slate-500'>or</span>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white text-slate-500">or</span>
               </div>
             </div>
 
             <div>
-              <label className='block text-sm font-medium text-slate-700 mb-2'>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
                 Room Code
               </label>
               <input
-                type='text'
+                type="text"
                 value={joinCode}
                 onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-                className='w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500'
-                placeholder='Enter room code'
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                placeholder="Enter room code"
                 maxLength={6}
               />
             </div>
@@ -489,65 +446,67 @@ const KiaTereGame: React.FC = () => {
               disabled={
                 !playerName.trim() ||
                 !joinCode.trim() ||
-                connectionStatus === 'connecting'
+                connectionStatus === "connecting"
               }
-              className='w-full py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors'>
+              className="w-full py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors"
+            >
               Join Room
             </button>
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   // Lobby
-  if (gameState === 'lobby') {
+  if (gameState === "lobby") {
     return (
-      <div className='min-h-screen bg-slate-50 p-4'>
-        <div className='max-w-md mx-auto bg-white rounded-2xl shadow-lg border p-6'>
-          <div className='text-center mb-6'>
-            <h1 className='text-2xl font-bold text-slate-800 mb-2'>
+      <div className="min-h-screen bg-slate-50 p-4">
+        <div className="max-w-md mx-auto bg-white rounded-2xl shadow-lg border p-6">
+          <div className="text-center mb-6">
+            <h1 className="text-2xl font-bold text-slate-800 mb-2">
               Game Lobby
             </h1>
-            <div className='flex items-center justify-center gap-2 mb-4'>
-              <span className='text-lg font-mono bg-slate-100 px-3 py-1 rounded'>
+            <div className="flex items-center justify-center gap-2 mb-4">
+              <span className="text-lg font-mono bg-slate-100 px-3 py-1 rounded">
                 {roomCode}
               </span>
               <button
                 onClick={copyRoomCode}
-                className='p-2 text-slate-600 hover:text-teal-600 transition-colors'
-                title='Copy room code'>
+                className="p-2 text-slate-600 hover:text-teal-600 transition-colors"
+                title="Copy room code"
+              >
                 {copySuccess ? (
-                  <Check className='w-4 h-4 text-green-600' />
+                  <Check className="w-4 h-4 text-green-600" />
                 ) : (
-                  <Copy className='w-4 h-4' />
+                  <Copy className="w-4 h-4" />
                 )}
               </button>
             </div>
-            <div className='flex items-center justify-center gap-1 text-sm'>
-              {connectionStatus === 'connected' ? (
+            <div className="flex items-center justify-center gap-1 text-sm">
+              {connectionStatus === "connected" ? (
                 <>
-                  <Wifi className='w-4 h-4 text-green-600' />
-                  <span className='text-green-600'>Connected</span>
+                  <Wifi className="w-4 h-4 text-green-600" />
+                  <span className="text-green-600">Connected</span>
                 </>
-              ) : connectionStatus === 'connecting' ? (
+              ) : connectionStatus === "connecting" ? (
                 <>
-                  <Wifi className='w-4 h-4 text-yellow-600' />
-                  <span className='text-yellow-600'>Connecting...</span>
+                  <Wifi className="w-4 h-4 text-yellow-600" />
+                  <span className="text-yellow-600">Connecting...</span>
                 </>
               ) : (
                 <>
-                  <WifiOff className='w-4 h-4 text-red-600' />
-                  <span className='text-red-600'>Disconnected</span>
+                  <WifiOff className="w-4 h-4 text-red-600" />
+                  <span className="text-red-600">Disconnected</span>
                 </>
               )}
             </div>
           </div>
 
-          <div className='space-y-3 mb-6'>
-            <div className='flex items-center gap-2 mb-2'>
-              <Users className='w-5 h-5 text-slate-600' />
-              <h2 className='text-lg font-semibold'>
+          <div className="space-y-3 mb-6">
+            <div className="flex items-center gap-2 mb-2">
+              <Users className="w-5 h-5 text-slate-600" />
+              <h2 className="text-lg font-semibold">
                 Players ({players.length})
               </h2>
             </div>
@@ -555,24 +514,25 @@ const KiaTereGame: React.FC = () => {
             {players.map((player, index) => (
               <div
                 key={index}
-                className='flex items-center justify-between p-3 bg-slate-50 rounded-lg'>
-                <span className='font-medium'>{player}</span>
-                <div className='flex items-center gap-2'>
+                className="flex items-center justify-between p-3 bg-slate-50 rounded-lg"
+              >
+                <span className="font-medium">{player}</span>
+                <div className="flex items-center gap-2">
                   {player === playerName && (
-                    <span className='text-xs bg-teal-100 text-teal-800 px-2 py-1 rounded'>
+                    <span className="text-xs bg-teal-100 text-teal-800 px-2 py-1 rounded">
                       You
                     </span>
                   )}
                   {index === 0 && (
-                    <span className='text-xs bg-amber-100 text-amber-800 px-2 py-1 rounded'>
+                    <span className="text-xs bg-amber-100 text-amber-800 px-2 py-1 rounded">
                       Host
                     </span>
                   )}
                   <div
                     className={`w-2 h-2 rounded-full ${
                       connectedPlayers.includes(player)
-                        ? 'bg-green-500'
-                        : 'bg-red-500'
+                        ? "bg-green-500"
+                        : "bg-red-500"
                     }`}
                   />
                 </div>
@@ -580,60 +540,63 @@ const KiaTereGame: React.FC = () => {
             ))}
           </div>
 
-          <div className='space-y-3'>
+          <div className="space-y-3">
             {isHost && (
               <>
-                <div className='mb-4'>
-                  <label className='block text-sm font-medium text-slate-700 mb-2'>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
                     Difficulty Level
                   </label>
-                  <div className='flex gap-2'>
+                  <div className="flex gap-2">
                     <button
-                      onClick={() => setDifficulty('easy')}
+                      onClick={() => setDifficulty("easy")}
                       className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
-                        difficulty === 'easy'
-                          ? 'bg-green-500 text-white'
-                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                      }`}>
+                        difficulty === "easy"
+                          ? "bg-green-500 text-white"
+                          : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                      }`}
+                    >
                       Easy ({LETTER_SETS.easy.length} letters)
                     </button>
                     <button
-                      onClick={() => setDifficulty('hard')}
+                      onClick={() => setDifficulty("hard")}
                       className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
-                        difficulty === 'hard'
-                          ? 'bg-red-500 text-white'
-                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                      }`}>
+                        difficulty === "hard"
+                          ? "bg-red-500 text-white"
+                          : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                      }`}
+                    >
                       Hard ({LETTER_SETS.hard.length} letters)
                     </button>
                   </div>
-                  <div className='mt-2 text-xs text-slate-600'>
-                    {difficulty === 'easy'
-                      ? 'Common letters only - easier to find words'
-                      : 'All letters including Q, X, Z - more challenging'}
+                  <div className="mt-2 text-xs text-slate-600">
+                    {difficulty === "easy"
+                      ? "Common letters only - easier to find words"
+                      : "All letters including Q, X, Z - more challenging"}
                   </div>
                 </div>
 
                 <button
                   onClick={startGame}
                   disabled={
-                    players.length < 2 || connectionStatus !== 'connected'
+                    players.length < 2 || connectionStatus !== "connected"
                   }
-                  className='w-full py-3 bg-teal-600 text-white rounded-lg font-semibold hover:bg-teal-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2'>
-                  <Play className='w-5 h-5' />
+                  className="w-full py-3 bg-teal-600 text-white rounded-lg font-semibold hover:bg-teal-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                >
+                  <Play className="w-5 h-5" />
                   Start Game ({difficulty} mode)
                 </button>
               </>
             )}
 
             {!isHost && (
-              <div className='text-center p-4 bg-slate-50 rounded-lg'>
-                <p className='text-slate-600 mb-2'>
+              <div className="text-center p-4 bg-slate-50 rounded-lg">
+                <p className="text-slate-600 mb-2">
                   Waiting for host to start the game
                 </p>
-                <p className='text-sm text-slate-500'>
-                  Difficulty:{' '}
-                  <span className='font-semibold capitalize'>{difficulty}</span>
+                <p className="text-sm text-slate-500">
+                  Difficulty:{" "}
+                  <span className="font-semibold capitalize">{difficulty}</span>
                   ({LETTER_SETS[difficulty].length} letters)
                 </p>
               </div>
@@ -641,34 +604,37 @@ const KiaTereGame: React.FC = () => {
 
             <button
               onClick={resetGame}
-              className='w-full py-2 bg-slate-500 text-white rounded-lg font-semibold hover:bg-slate-600 transition-colors'>
+              className="w-full py-2 bg-slate-500 text-white rounded-lg font-semibold hover:bg-slate-600 transition-colors"
+            >
               Leave Room
             </button>
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   // Game Over
-  if (gameState === 'gameOver') {
-    const winner = Object.entries(roundWins).find(([_, wins]) => wins >= 3)?.[0]
+  if (gameState === "gameOver") {
+    const winner = Object.entries(roundWins).find(
+      ([_, wins]) => wins >= 3,
+    )?.[0];
     return (
-      <div className='min-h-screen bg-slate-50 p-4 flex items-center justify-center'>
-        <div className='bg-white rounded-2xl shadow-lg border p-8 text-center max-w-md'>
-          <Trophy className='w-16 h-16 text-amber-500 mx-auto mb-4' />
-          <h1 className='text-3xl font-bold text-slate-800 mb-2'>Game Over!</h1>
-          <h2 className='text-2xl font-semibold text-teal-600 mb-6'>
+      <div className="min-h-screen bg-slate-50 p-4 flex items-center justify-center">
+        <div className="bg-white rounded-2xl shadow-lg border p-8 text-center max-w-md">
+          <Trophy className="w-16 h-16 text-amber-500 mx-auto mb-4" />
+          <h1 className="text-3xl font-bold text-slate-800 mb-2">Game Over!</h1>
+          <h2 className="text-2xl font-semibold text-teal-600 mb-6">
             {winner} Wins!
           </h2>
 
-          <div className='space-y-2 mb-6'>
+          <div className="space-y-2 mb-6">
             {Object.entries(roundWins)
               .sort((a, b) => b[1] - a[1])
               .map(([player, wins]) => (
-                <div key={player} className='flex justify-between items-center'>
-                  <span className='font-medium'>{player}</span>
-                  <span className='bg-teal-50 text-teal-800 px-2 py-1 rounded'>
+                <div key={player} className="flex justify-between items-center">
+                  <span className="font-medium">{player}</span>
+                  <span className="bg-teal-50 text-teal-800 px-2 py-1 rounded">
                     {wins} wins
                   </span>
                 </div>
@@ -677,48 +643,52 @@ const KiaTereGame: React.FC = () => {
 
           <button
             onClick={resetGame}
-            className='w-full py-3 bg-teal-600 text-white rounded-lg font-semibold hover:bg-teal-700 transition-colors flex items-center justify-center gap-2'>
-            <RotateCcw className='w-5 h-5' />
+            className="w-full py-3 bg-teal-600 text-white rounded-lg font-semibold hover:bg-teal-700 transition-colors flex items-center justify-center gap-2"
+          >
+            <RotateCcw className="w-5 h-5" />
             New Game
           </button>
         </div>
       </div>
-    )
+    );
   }
 
-  const currentPlayer = activePlayers[currentPlayerIndex]
-  const isMyTurn = currentPlayer === playerName
+  const currentPlayer =
+    activePlayers && activePlayers.length > 0
+      ? activePlayers[currentPlayerIndex] || activePlayers[0]
+      : players[0] || "Unknown";
+  const isMyTurn = currentPlayer === playerName && currentPlayer !== "Unknown";
 
   // Playing Game
   return (
-    <div className='min-h-screen bg-slate-50 p-4'>
-      <div className='max-w-4xl mx-auto'>
+    <div className="min-h-screen bg-slate-50 p-4">
+      <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <div className='bg-white rounded-2xl shadow-lg border p-6 mb-6'>
-          <div className='flex flex-wrap justify-between items-center gap-4'>
-            <div className='flex items-center gap-4'>
-              <h1 className='text-2xl font-bold text-slate-800'>Kia Tere</h1>
-              <div className='flex items-center gap-2 text-sm text-slate-600'>
-                <Target className='w-4 h-4' />
+        <div className="bg-white rounded-2xl shadow-lg border p-6 mb-6">
+          <div className="flex flex-wrap justify-between items-center gap-4">
+            <div className="flex items-center gap-4">
+              <h1 className="text-2xl font-bold text-slate-800">Kia Tere</h1>
+              <div className="flex items-center gap-2 text-sm text-slate-600">
+                <Target className="w-4 h-4" />
                 Round {roundNumber}
               </div>
-              <div className='flex items-center gap-1 text-sm'>
-                {connectionStatus === 'connected' ? (
-                  <Wifi className='w-4 h-4 text-green-600' />
+              <div className="flex items-center gap-1 text-sm">
+                {connectionStatus === "connected" ? (
+                  <Wifi className="w-4 h-4 text-green-600" />
                 ) : (
-                  <WifiOff className='w-4 h-4 text-red-600' />
+                  <WifiOff className="w-4 h-4 text-red-600" />
                 )}
-                <span className='font-mono text-xs'>{roomCode}</span>
+                <span className="font-mono text-xs">{roomCode}</span>
               </div>
             </div>
 
-            <div className='flex items-center gap-4'>
+            <div className="flex items-center gap-4">
               {Object.entries(roundWins).map(([player, wins]) => (
-                <div key={player} className='text-center'>
-                  <div className='text-sm font-medium text-slate-600'>
+                <div key={player} className="text-center">
+                  <div className="text-sm font-medium text-slate-600">
                     {player}
                   </div>
-                  <div className='text-lg font-bold text-teal-600'>
+                  <div className="text-lg font-bold text-teal-600">
                     {wins}/3
                   </div>
                 </div>
@@ -728,52 +698,55 @@ const KiaTereGame: React.FC = () => {
         </div>
 
         {/* Game Board */}
-        <div className='bg-white rounded-2xl shadow-lg border p-8'>
+        <div className="bg-white rounded-2xl shadow-lg border p-8">
           {/* Category and Current Player */}
-          <div className='text-center mb-8'>
-            <div className='bg-cyan-50 rounded-xl p-4 mb-4 border'>
-              <h2 className='text-xl font-bold text-slate-800 mb-2'>
+          <div className="text-center mb-8">
+            <div className="bg-cyan-50 rounded-xl p-4 mb-4 border">
+              <h2 className="text-xl font-bold text-slate-800 mb-2">
                 Category
               </h2>
-              <p className='text-2xl font-bold text-cyan-600 bg-cyan-100 px-4 py-2 rounded-lg inline-block'>
+              <p className="text-2xl font-bold text-cyan-600 bg-cyan-100 px-4 py-2 rounded-lg inline-block">
                 {currentCategory}
               </p>
-              <div className='mt-2 text-sm text-slate-600'>
-                <span className='font-medium'>Difficulty:</span>
+              <div className="mt-2 text-sm text-slate-600">
+                <span className="font-medium">Difficulty:</span>
                 <span
                   className={`ml-1 px-2 py-1 rounded text-xs font-semibold ${
-                    difficulty === 'easy'
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-red-100 text-red-800'
-                  }`}>
+                    difficulty === "easy"
+                      ? "bg-green-100 text-green-800"
+                      : "bg-red-100 text-red-800"
+                  }`}
+                >
                   {difficulty.toUpperCase()} ({letters.length} letters)
                 </span>
               </div>
             </div>
 
-            {roundActive && (
+            {activePlayers.length > 0 && (
               <div
                 className={`rounded-xl p-4 border ${
-                  isMyTurn ? 'bg-green-50 border-green-200' : 'bg-slate-50'
-                }`}>
-                <p className='text-lg font-semibold text-slate-800'>
-                  {currentPlayer}'s Turn {isMyTurn && '(You)'}
+                  isMyTurn ? "bg-green-50 border-green-200" : "bg-slate-50"
+                }`}
+              >
+                <p className="text-lg font-semibold text-slate-800">
+                  {currentPlayer}'s Turn {isMyTurn && "(You)"}
                 </p>
-                <div className='flex items-center justify-center gap-2 mt-2'>
-                  <Clock className='w-5 h-5 text-slate-600' />
+                <div className="flex items-center justify-center gap-2 mt-2">
+                  <Clock className="w-5 h-5 text-slate-600" />
                   <span
                     className={`text-2xl font-bold ${
-                      timeLeft <= 3 ? 'text-red-600' : 'text-slate-800'
-                    }`}>
+                      timeLeft <= 3 ? "text-red-600" : "text-slate-800"
+                    }`}
+                  >
                     {timeLeft}s
                   </span>
                 </div>
 
                 {selectedLetter && isMyTurn && (
-                  <div className='mt-3 p-2 bg-teal-100 rounded-lg'>
-                    <p className='text-sm text-teal-800'>
-                      Selected:{' '}
-                      <span className='font-bold text-lg'>
+                  <div className="mt-3 p-2 bg-teal-100 rounded-lg">
+                    <p className="text-sm text-teal-800">
+                      Selected:{" "}
+                      <span className="font-bold text-lg">
                         {selectedLetter}
                       </span>
                     </p>
@@ -781,18 +754,20 @@ const KiaTereGame: React.FC = () => {
                 )}
 
                 {isMyTurn && (
-                  <div className='flex gap-2 mt-3'>
+                  <div className="flex gap-2 mt-3">
                     {!isTimerRunning ? (
                       <button
                         onClick={startTurn}
-                        className='flex-1 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-semibold'>
+                        className="flex-1 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-semibold"
+                      >
                         Start Turn
                       </button>
                     ) : (
                       <button
                         onClick={endTurn}
                         disabled={!selectedLetter}
-                        className='flex-1 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors font-semibold'>
+                        className="flex-1 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors font-semibold"
+                      >
                         End Turn
                       </button>
                     )}
@@ -803,14 +778,15 @@ const KiaTereGame: React.FC = () => {
           </div>
 
           {/* Letter Grid */}
-          <div className='max-w-2xl mx-auto mb-8'>
+          <div className="max-w-2xl mx-auto mb-8">
             <div
               className={`grid gap-3 sm:gap-4 ${
-                letters.length <= 18 ? 'grid-cols-6' : 'grid-cols-6'
-              }`}>
+                letters.length <= 18 ? "grid-cols-6" : "grid-cols-6"
+              }`}
+            >
               {letters.map((letter) => {
-                const isUsed = usedLetters.has(letter)
-                const isSelected = selectedLetter === letter && isMyTurn
+                const isUsed = usedLetters.has(letter);
+                const isSelected = selectedLetter === letter && isMyTurn;
 
                 return (
                   <button
@@ -823,46 +799,48 @@ const KiaTereGame: React.FC = () => {
                       aspect-square rounded-lg font-bold text-lg transition-all duration-200 border-2
                       ${
                         isUsed
-                          ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
+                          ? "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed"
                           : isSelected
-                          ? 'bg-amber-500 text-white border-amber-600 scale-105 shadow-lg'
-                          : roundActive && isTimerRunning && isMyTurn
-                          ? 'bg-teal-600 text-white border-teal-700 hover:bg-teal-700 hover:scale-105 cursor-pointer shadow-md'
-                          : 'bg-slate-200 text-slate-500 border-slate-300 cursor-not-allowed'
+                            ? "bg-amber-500 text-white border-amber-600 scale-105 shadow-lg"
+                            : roundActive && isTimerRunning && isMyTurn
+                              ? "bg-teal-600 text-white border-teal-700 hover:bg-teal-700 hover:scale-105 cursor-pointer shadow-md"
+                              : "bg-slate-200 text-slate-500 border-slate-300 cursor-not-allowed"
                       }
-                    `}>
+                    `}
+                  >
                     {letter}
                   </button>
-                )
+                );
               })}
             </div>
           </div>
 
           {/* Instructions */}
-          <div className='text-center mt-8 text-slate-600'>
-            <p className='mb-2'>
+          <div className="text-center mt-8 text-slate-600">
+            <p className="mb-2">
               1. Select/deselect letters to plan your word • 2. Say your word •
               3. Click "End Turn"
             </p>
-            <p className='text-sm'>
-              {isMyTurn ? "It's your turn!" : `Waiting for ${currentPlayer}...`}{' '}
+            <p className="text-sm">
+              {isMyTurn ? "It's your turn!" : `Waiting for ${currentPlayer}...`}{" "}
               • 10 seconds per turn
             </p>
           </div>
 
           {/* Reset Button */}
-          <div className='text-center mt-6'>
+          <div className="text-center mt-6">
             <button
               onClick={resetGame}
-              className='px-6 py-2 bg-slate-500 text-white rounded-lg hover:bg-slate-600 transition-colors flex items-center gap-2 mx-auto'>
-              <RotateCcw className='w-4 h-4' />
+              className="px-6 py-2 bg-slate-500 text-white rounded-lg hover:bg-slate-600 transition-colors flex items-center gap-2 mx-auto"
+            >
+              <RotateCcw className="w-4 h-4" />
               Leave Game
             </button>
           </div>
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default KiaTereGame
+export default KiaTereGame;
