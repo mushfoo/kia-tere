@@ -1,6 +1,6 @@
-import React from "react";
-import KiaTereGame from "./components/KiaTereGame";
-import "./App.css";
+import React from 'react';
+import KiaTereGame from './components/KiaTereGame';
+import './App.css';
 
 const App: React.FC = () => {
   return (

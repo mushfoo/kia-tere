@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Play,
   RotateCcw,
@@ -10,81 +10,82 @@ import {
   WifiOff,
   Copy,
   Check,
-} from "lucide-react";
+} from 'lucide-react';
 
+// Types
 interface WebSocketMessage {
   type: string;
   [key: string]: any;
 }
 
-type ConnectionStatus = "connected" | "connecting" | "disconnected" | "error";
-type GamePhase = "menu" | "lobby" | "playing" | "gameOver";
-type Difficulty = "easy" | "hard";
+type ConnectionStatus = 'connected' | 'connecting' | 'disconnected' | 'error';
+type GamePhase = 'menu' | 'lobby' | 'playing' | 'gameOver';
+type Difficulty = 'easy' | 'hard';
 
 // Letter difficulty constants based on frequency and word availability
 const LETTER_SETS = {
   easy: [
-    "A",
-    "B",
-    "C",
-    "D",
-    "E",
-    "F",
-    "G",
-    "H",
-    "I",
-    "L",
-    "M",
-    "N",
-    "O",
-    "P",
-    "R",
-    "S",
-    "T",
-    "W",
+    'A',
+    'B',
+    'C',
+    'D',
+    'E',
+    'F',
+    'G',
+    'H',
+    'I',
+    'L',
+    'M',
+    'N',
+    'O',
+    'P',
+    'R',
+    'S',
+    'T',
+    'W',
   ], // 18 common letters - easier to find words
   hard: [
-    "A",
-    "B",
-    "C",
-    "D",
-    "E",
-    "F",
-    "G",
-    "H",
-    "I",
-    "J",
-    "K",
-    "L",
-    "M",
-    "N",
-    "O",
-    "P",
-    "Q",
-    "R",
-    "S",
-    "T",
-    "U",
-    "V",
-    "W",
-    "X",
-    "Y",
-    "Z",
+    'A',
+    'B',
+    'C',
+    'D',
+    'E',
+    'F',
+    'G',
+    'H',
+    'I',
+    'J',
+    'K',
+    'L',
+    'M',
+    'N',
+    'O',
+    'P',
+    'Q',
+    'R',
+    'S',
+    'T',
+    'U',
+    'V',
+    'W',
+    'X',
+    'Y',
+    'Z',
   ], // All 26 letters - includes challenging letters like Q, X, Z
 } as const;
 
 const KiaTereGame: React.FC = () => {
   // Game state
-  const [gameState, setGameState] = useState<GamePhase>("menu");
+  const [gameState, setGameState] = useState<GamePhase>('menu');
   const [isHost, setIsHost] = useState<boolean>(false);
-  const [roomCode, setRoomCode] = useState<string>("");
-  const [joinCode, setJoinCode] = useState<string>("");
-  const [playerName, setPlayerName] = useState<string>("");
+  const [roomCode, setRoomCode] = useState<string>('');
+  const [joinCode, setJoinCode] = useState<string>('');
+  const [playerName, setPlayerName] = useState<string>('');
   const [players, setPlayers] = useState<string[]>([]);
   const [connectedPlayers, setConnectedPlayers] = useState<string[]>([]);
   const [currentPlayerIndex, setCurrentPlayerIndex] = useState<number>(0);
   const [roundWins, setRoundWins] = useState<Record<string, number>>({});
-  const [currentCategory, setCurrentCategory] = useState<string>("");
+  const [currentCategory, setCurrentCategory] = useState<string>('');
   const [usedLetters, setUsedLetters] = useState<Set<string>>(new Set());
   const [timeLeft, setTimeLeft] = useState<number>(10);
   const [isTimerRunning, setIsTimerRunning] = useState<boolean>(false);
@@ -93,37 +94,11 @@ const KiaTereGame: React.FC = () => {
   const [roundNumber, setRoundNumber] = useState<number>(1);
   const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
   const [connectionStatus, setConnectionStatus] =
-    useState<ConnectionStatus>("disconnected");
+    useState<ConnectionStatus>('disconnected');
   const [copySuccess, setCopySuccess] = useState<boolean>(false);
-  const [difficulty, setDifficulty] = useState<Difficulty>("easy");
+  const [difficulty, setDifficulty] = useState<Difficulty>('easy');
 
   const wsRef = useRef<WebSocket | null>(null);
-
-  // Categories for the game
-  const categories: string[] = [
-    "Animals",
-    "Foods",
-    "Countries",
-    "Movies",
-    "Sports",
-    "Colors",
-    "Professions",
-    "Things in a Kitchen",
-    "School Subjects",
-    "Board Games",
-    "Fruits",
-    "Vegetables",
-    "Car Brands",
-    "TV Shows",
-    "Books",
-    "Things You Wear",
-    "Musical Instruments",
-    "Things in Nature",
-    "Superheroes",
-    "Pizza Toppings",
-    "Things in Space",
-    "Board Game Mechanics",
-  ];
 
   // Letters arranged in a grid - now using difficulty-based sets
   const letters: readonly string[] = LETTER_SETS[difficulty];
@@ -143,24 +118,16 @@ const KiaTereGame: React.FC = () => {
         wsRef.current.send(JSON.stringify(message));
       }
     },
-    [],
+    []
   );
-
-  const handleTimeUp = useCallback((): void => {
-    // This is now only for manual timeout if needed
-    // The server handles automatic timeouts
-    sendWebSocketMessage({
-      type: "TIME_UP",
-    });
-  }, [sendWebSocketMessage]);
 
   const connectWebSocket = (): void => {
     // Replace with your WebSocket server URL
-    const wsUrl = "ws://10.0.0.3:9191";
+    const wsUrl = 'ws://10.0.0.3:9191';
     wsRef.current = new WebSocket(wsUrl);
 
     wsRef.current.onopen = () => {
-      setConnectionStatus("connected");
+      setConnectionStatus('connected');
     };
 
     wsRef.current.onmessage = (event: MessageEvent) => {
@@ -169,7 +136,7 @@ const KiaTereGame: React.FC = () => {
     };
 
     wsRef.current.onclose = () => {
-      setConnectionStatus("disconnected");
+      setConnectionStatus('disconnected');
       // Attempt to reconnect after 3 seconds
       setTimeout(() => {
         if (roomCode) {
@@ -179,10 +146,10 @@ const KiaTereGame: React.FC = () => {
             if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
               wsRef.current.send(
                 JSON.stringify({
-                  type: "JOIN_ROOM",
+                  type: 'JOIN_ROOM',
                   roomCode,
                   playerName,
-                }),
+                })
               );
             }
           }, 100);
@@ -191,37 +158,37 @@ const KiaTereGame: React.FC = () => {
     };
 
     wsRef.current.onerror = () => {
-      setConnectionStatus("error");
+      setConnectionStatus('error');
     };
   };
 
   const handleWebSocketMessage = (message: WebSocketMessage): void => {
     switch (message.type) {
-      case "ROOM_CREATED":
+      case 'ROOM_CREATED':
         setRoomCode(message.roomCode);
-        setGameState("lobby");
+        setGameState('lobby');
         setIsHost(true);
         break;
 
-      case "ROOM_JOINED":
+      case 'ROOM_JOINED':
         setRoomCode(message.roomCode);
-        setGameState("lobby");
+        setGameState('lobby');
         setPlayers(message.players);
         setConnectedPlayers(message.connectedPlayers);
         break;
 
-      case "PLAYER_JOINED":
+      case 'PLAYER_JOINED':
         setPlayers(message.players);
         setConnectedPlayers(message.connectedPlayers);
         break;
 
-      case "PLAYER_LEFT":
+      case 'PLAYER_LEFT':
         setPlayers(message.players);
         setConnectedPlayers(message.connectedPlayers);
         break;
 
-      case "GAME_STARTED":
-        setGameState("playing");
+      case 'GAME_STARTED':
+        setGameState('playing');
         setPlayers(message.gameState.players);
         setActivePlayers(message.gameState.activePlayers);
         setCurrentPlayerIndex(message.gameState.currentPlayerIndex);
@@ -232,11 +199,11 @@ const KiaTereGame: React.FC = () => {
         setTimeLeft(message.gameState.timeLeft);
         setIsTimerRunning(message.gameState.isTimerRunning);
         setRoundActive(message.gameState.roundActive);
-        setDifficulty(message.gameState.difficulty || "easy");
+        setDifficulty(message.gameState.difficulty || 'easy');
         setSelectedLetter(null);
         break;
 
-      case "GAME_STATE_UPDATE":
+      case 'GAME_STATE_UPDATE':
         setActivePlayers(message.gameState.activePlayers);
         setCurrentPlayerIndex(message.gameState.currentPlayerIndex);
         setUsedLetters(new Set(message.gameState.usedLetters));
@@ -245,20 +212,20 @@ const KiaTereGame: React.FC = () => {
         setSelectedLetter(null);
         break;
 
-      case "TIMER_UPDATE":
+      case 'TIMER_UPDATE':
         // Always update timer from server - no conditions needed
         setTimeLeft(message.timeLeft);
         break;
 
-      case "ROUND_END":
+      case 'ROUND_END':
         // Update all game state for new round
         if (message.gameState) {
           console.log(`[DEBUG] Updating game state from ROUND_END`);
           console.log(
-            `[DEBUG] New category: ${message.gameState.currentCategory}`,
+            `[DEBUG] New category: ${message.gameState.currentCategory}`
           );
           console.log(
-            `[DEBUG] Timer: ${message.gameState.timeLeft}s, running: ${message.gameState.isTimerRunning}`,
+            `[DEBUG] Timer: ${message.gameState.timeLeft}s, running: ${message.gameState.isTimerRunning}`
           );
           console.log(`[DEBUG] Round active: ${message.gameState.roundActive}`);
 
@@ -278,12 +245,12 @@ const KiaTereGame: React.FC = () => {
         setSelectedLetter(null);
         break;
 
-      case "GAME_END":
-        setGameState("gameOver");
+      case 'GAME_END':
+        setGameState('gameOver');
         setRoundWins(message.roundWins);
         break;
 
-      case "ERROR":
+      case 'ERROR':
         alert(message.message);
         break;
     }
@@ -294,7 +261,7 @@ const KiaTereGame: React.FC = () => {
     connectWebSocket();
     setTimeout(() => {
       sendWebSocketMessage({
-        type: "CREATE_ROOM",
+        type: 'CREATE_ROOM',
         playerName: playerName.trim(),
       });
     }, 100);
@@ -305,7 +272,7 @@ const KiaTereGame: React.FC = () => {
     connectWebSocket();
     setTimeout(() => {
       sendWebSocketMessage({
-        type: "JOIN_ROOM",
+        type: 'JOIN_ROOM',
         roomCode: joinCode.trim().toUpperCase(),
         playerName: playerName.trim(),
       });
@@ -315,7 +282,7 @@ const KiaTereGame: React.FC = () => {
   const startGame = (): void => {
     if (!isHost) return;
     sendWebSocketMessage({
-      type: "START_GAME",
+      type: 'START_GAME',
       difficulty,
     });
   };
@@ -332,7 +299,7 @@ const KiaTereGame: React.FC = () => {
   const startTurn = (): void => {
     if (activePlayers[currentPlayerIndex] !== playerName) return;
     sendWebSocketMessage({
-      type: "START_TURN",
+      type: 'START_TURN',
     });
   };
 
@@ -340,16 +307,16 @@ const KiaTereGame: React.FC = () => {
     if (!selectedLetter || activePlayers[currentPlayerIndex] !== playerName)
       return;
     sendWebSocketMessage({
-      type: "END_TURN",
+      type: 'END_TURN',
       selectedLetter,
     });
   };
 
   const resetGame = (): void => {
-    setGameState("menu");
+    setGameState('menu');
     setIsHost(false);
-    setRoomCode("");
-    setJoinCode("");
+    setRoomCode('');
+    setJoinCode('');
     setPlayers([]);
     setConnectedPlayers([]);
     setCurrentPlayerIndex(0);
@@ -361,7 +328,7 @@ const KiaTereGame: React.FC = () => {
     setRoundActive(false);
     setActivePlayers([]);
     setRoundNumber(1);
-    setDifficulty("easy");
+    setDifficulty('easy');
     if (wsRef.current) {
       wsRef.current.close();
     }
@@ -374,11 +341,11 @@ const KiaTereGame: React.FC = () => {
       setTimeout(() => setCopySuccess(false), 2000);
     } catch (err) {
       // Fallback for browsers that don't support clipboard API
-      const textArea = document.createElement("textarea");
+      const textArea = document.createElement('textarea');
       textArea.value = roomCode;
       document.body.appendChild(textArea);
       textArea.select();
-      document.execCommand("copy");
+      document.execCommand('copy');
       document.body.removeChild(textArea);
       setCopySuccess(true);
       setTimeout(() => setCopySuccess(false), 2000);
@@ -386,7 +353,7 @@ const KiaTereGame: React.FC = () => {
   };
 
   // Main Menu
-  if (gameState === "menu") {
+  if (gameState === 'menu') {
     return (
       <div className="min-h-screen bg-slate-50 p-4">
         <div className="max-w-md mx-auto bg-white rounded-2xl shadow-lg border p-6">
@@ -412,7 +379,7 @@ const KiaTereGame: React.FC = () => {
 
             <button
               onClick={createRoom}
-              disabled={!playerName.trim() || connectionStatus === "connecting"}
+              disabled={!playerName.trim() || connectionStatus === 'connecting'}
               className="w-full py-3 bg-teal-600 text-white rounded-lg font-semibold hover:bg-teal-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors"
             >
               Create Room
@@ -446,7 +413,7 @@ const KiaTereGame: React.FC = () => {
               disabled={
                 !playerName.trim() ||
                 !joinCode.trim() ||
-                connectionStatus === "connecting"
+                connectionStatus === 'connecting'
               }
               className="w-full py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors"
             >
@@ -459,7 +426,7 @@ const KiaTereGame: React.FC = () => {
   }
 
   // Lobby
-  if (gameState === "lobby") {
+  if (gameState === 'lobby') {
     return (
       <div className="min-h-screen bg-slate-50 p-4">
         <div className="max-w-md mx-auto bg-white rounded-2xl shadow-lg border p-6">
@@ -484,12 +451,12 @@ const KiaTereGame: React.FC = () => {
               </button>
             </div>
             <div className="flex items-center justify-center gap-1 text-sm">
-              {connectionStatus === "connected" ? (
+              {connectionStatus === 'connected' ? (
                 <>
                   <Wifi className="w-4 h-4 text-green-600" />
                   <span className="text-green-600">Connected</span>
                 </>
-              ) : connectionStatus === "connecting" ? (
+              ) : connectionStatus === 'connecting' ? (
                 <>
                   <Wifi className="w-4 h-4 text-yellow-600" />
                   <span className="text-yellow-600">Connecting...</span>
@@ -531,8 +498,8 @@ const KiaTereGame: React.FC = () => {
                   <div
                     className={`w-2 h-2 rounded-full ${
                       connectedPlayers.includes(player)
-                        ? "bg-green-500"
-                        : "bg-red-500"
+                        ? 'bg-green-500'
+                        : 'bg-red-500'
                     }`}
                   />
                 </div>
@@ -549,37 +516,37 @@ const KiaTereGame: React.FC = () => {
                   </label>
                   <div className="flex gap-2">
                     <button
-                      onClick={() => setDifficulty("easy")}
+                      onClick={() => setDifficulty('easy')}
                       className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
-                        difficulty === "easy"
-                          ? "bg-green-500 text-white"
-                          : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                        difficulty === 'easy'
+                          ? 'bg-green-500 text-white'
+                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                       }`}
                     >
                       Easy ({LETTER_SETS.easy.length} letters)
                     </button>
                     <button
-                      onClick={() => setDifficulty("hard")}
+                      onClick={() => setDifficulty('hard')}
                       className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
-                        difficulty === "hard"
-                          ? "bg-red-500 text-white"
-                          : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                        difficulty === 'hard'
+                          ? 'bg-red-500 text-white'
+                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                       }`}
                     >
                       Hard ({LETTER_SETS.hard.length} letters)
                     </button>
                   </div>
                   <div className="mt-2 text-xs text-slate-600">
-                    {difficulty === "easy"
-                      ? "Common letters only - easier to find words"
-                      : "All letters including Q, X, Z - more challenging"}
+                    {difficulty === 'easy'
+                      ? 'Common letters only - easier to find words'
+                      : 'All letters including Q, X, Z - more challenging'}
                   </div>
                 </div>
 
                 <button
                   onClick={startGame}
                   disabled={
-                    players.length < 2 || connectionStatus !== "connected"
+                    players.length < 2 || connectionStatus !== 'connected'
                   }
                   className="w-full py-3 bg-teal-600 text-white rounded-lg font-semibold hover:bg-teal-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
                 >
@@ -595,7 +562,7 @@ const KiaTereGame: React.FC = () => {
                   Waiting for host to start the game
                 </p>
                 <p className="text-sm text-slate-500">
-                  Difficulty:{" "}
+                  Difficulty:{' '}
                   <span className="font-semibold capitalize">{difficulty}</span>
                   ({LETTER_SETS[difficulty].length} letters)
                 </p>
@@ -615,9 +582,9 @@ const KiaTereGame: React.FC = () => {
   }
 
   // Game Over
-  if (gameState === "gameOver") {
+  if (gameState === 'gameOver') {
     const winner = Object.entries(roundWins).find(
-      ([_, wins]) => wins >= 3,
+      ([_, wins]) => wins >= 3
     )?.[0];
     return (
       <div className="min-h-screen bg-slate-50 p-4 flex items-center justify-center">
@@ -656,8 +623,8 @@ const KiaTereGame: React.FC = () => {
   const currentPlayer =
     activePlayers && activePlayers.length > 0
       ? activePlayers[currentPlayerIndex] || activePlayers[0]
-      : players[0] || "Unknown";
-  const isMyTurn = currentPlayer === playerName && currentPlayer !== "Unknown";
+      : players[0] || 'Unknown';
+  const isMyTurn = currentPlayer === playerName && currentPlayer !== 'Unknown';
 
   // Playing Game
   return (
@@ -673,7 +640,7 @@ const KiaTereGame: React.FC = () => {
                 Round {roundNumber}
               </div>
               <div className="flex items-center gap-1 text-sm">
-                {connectionStatus === "connected" ? (
+                {connectionStatus === 'connected' ? (
                   <Wifi className="w-4 h-4 text-green-600" />
                 ) : (
                   <WifiOff className="w-4 h-4 text-red-600" />
@@ -712,9 +679,9 @@ const KiaTereGame: React.FC = () => {
                 <span className="font-medium">Difficulty:</span>
                 <span
                   className={`ml-1 px-2 py-1 rounded text-xs font-semibold ${
-                    difficulty === "easy"
-                      ? "bg-green-100 text-green-800"
-                      : "bg-red-100 text-red-800"
+                    difficulty === 'easy'
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-red-100 text-red-800'
                   }`}
                 >
                   {difficulty.toUpperCase()} ({letters.length} letters)
@@ -725,17 +692,17 @@ const KiaTereGame: React.FC = () => {
             {activePlayers.length > 0 && (
               <div
                 className={`rounded-xl p-4 border ${
-                  isMyTurn ? "bg-green-50 border-green-200" : "bg-slate-50"
+                  isMyTurn ? 'bg-green-50 border-green-200' : 'bg-slate-50'
                 }`}
               >
                 <p className="text-lg font-semibold text-slate-800">
-                  {currentPlayer}'s Turn {isMyTurn && "(You)"}
+                  {currentPlayer}'s Turn {isMyTurn && '(You)'}
                 </p>
                 <div className="flex items-center justify-center gap-2 mt-2">
                   <Clock className="w-5 h-5 text-slate-600" />
                   <span
                     className={`text-2xl font-bold ${
-                      timeLeft <= 3 ? "text-red-600" : "text-slate-800"
+                      timeLeft <= 3 ? 'text-red-600' : 'text-slate-800'
                     }`}
                   >
                     {timeLeft}s
@@ -745,7 +712,7 @@ const KiaTereGame: React.FC = () => {
                 {selectedLetter && isMyTurn && (
                   <div className="mt-3 p-2 bg-teal-100 rounded-lg">
                     <p className="text-sm text-teal-800">
-                      Selected:{" "}
+                      Selected:{' '}
                       <span className="font-bold text-lg">
                         {selectedLetter}
                       </span>
@@ -781,7 +748,7 @@ const KiaTereGame: React.FC = () => {
           <div className="max-w-2xl mx-auto mb-8">
             <div
               className={`grid gap-3 sm:gap-4 ${
-                letters.length <= 18 ? "grid-cols-6" : "grid-cols-6"
+                letters.length <= 18 ? 'grid-cols-6' : 'grid-cols-6'
               }`}
             >
               {letters.map((letter) => {
@@ -799,12 +766,12 @@ const KiaTereGame: React.FC = () => {
                       aspect-square rounded-lg font-bold text-lg transition-all duration-200 border-2
                       ${
                         isUsed
-                          ? "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed"
+                          ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
                           : isSelected
-                            ? "bg-amber-500 text-white border-amber-600 scale-105 shadow-lg"
+                            ? 'bg-amber-500 text-white border-amber-600 scale-105 shadow-lg'
                             : roundActive && isTimerRunning && isMyTurn
-                              ? "bg-teal-600 text-white border-teal-700 hover:bg-teal-700 hover:scale-105 cursor-pointer shadow-md"
-                              : "bg-slate-200 text-slate-500 border-slate-300 cursor-not-allowed"
+                              ? 'bg-teal-600 text-white border-teal-700 hover:bg-teal-700 hover:scale-105 cursor-pointer shadow-md'
+                              : 'bg-slate-200 text-slate-500 border-slate-300 cursor-not-allowed'
                       }
                     `}
                   >
@@ -822,7 +789,7 @@ const KiaTereGame: React.FC = () => {
               3. Click "End Turn"
             </p>
             <p className="text-sm">
-              {isMyTurn ? "It's your turn!" : `Waiting for ${currentPlayer}...`}{" "}
+              {isMyTurn ? "It's your turn!" : `Waiting for ${currentPlayer}...`}{' '}
               • 10 seconds per turn
             </p>
           </div>

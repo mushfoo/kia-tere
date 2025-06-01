@@ -1,0 +1,8 @@
+node_modules/
+build/
+dist/
+coverage/
+public/
+package-lock.json
+*.config.js
+*.config.ts

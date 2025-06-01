@@ -3,14 +3,14 @@ import {
   ExtendedWebSocket,
   EliminationResult,
   Difficulty,
-} from "../types";
-import { GAME_CONSTANTS } from "../constants";
+} from '../types';
+import { GAME_CONSTANTS } from '../constants';
 import {
   generateRoomCode,
   createInitialGameState,
   shouldCleanupRoom,
   getRandomCategory,
-} from "../utils/roomUtils";
+} from '../utils/roomUtils';
 
 export class GameStateManager {
   private rooms: Map<string, Room> = new Map();
@@ -61,7 +61,7 @@ export class GameStateManager {
 
     // Remove from connected players
     room.connectedPlayers = room.connectedPlayers.filter(
-      (p) => p !== playerName,
+      (p) => p !== playerName
     );
     room.lastActivity = Date.now();
 
@@ -93,7 +93,7 @@ export class GameStateManager {
 
       // Broadcast timer update to all players in room
       this.broadcastToRoom(roomCode, {
-        type: "TIMER_UPDATE",
+        type: 'TIMER_UPDATE',
         timeLeft: room.gameState.timeLeft,
       });
 
@@ -134,31 +134,31 @@ export class GameStateManager {
 
   private handleEliminationResult(
     roomCode: string,
-    result: EliminationResult,
+    result: EliminationResult
   ): void {
     switch (result.type) {
-      case "continue":
+      case 'continue':
         this.broadcastToRoom(roomCode, {
-          type: "GAME_STATE_UPDATE",
+          type: 'GAME_STATE_UPDATE',
           gameState: result.room.gameState,
         });
         // Start timer for next player
         this.startServerTimer(roomCode);
         break;
 
-      case "roundEnd":
+      case 'roundEnd':
         // Broadcast round end with full game state
         this.broadcastToRoom(roomCode, {
-          type: "ROUND_END",
+          type: 'ROUND_END',
           gameState: result.room.gameState, // Include full game state
           roundWins: result.room.gameState.roundWins,
           roundNumber: result.room.gameState.roundNumber,
         });
         break;
 
-      case "gameEnd":
+      case 'gameEnd':
         this.broadcastToRoom(roomCode, {
-          type: "GAME_END",
+          type: 'GAME_END',
           roundWins: result.room.gameState.roundWins,
           winner: result.winner,
         });
@@ -168,7 +168,7 @@ export class GameStateManager {
   }
 
   // Game state management
-  startGame(roomCode: string, difficulty: Difficulty = "easy"): Room | null {
+  startGame(roomCode: string, difficulty: Difficulty = 'easy'): Room | null {
     const room = this.rooms.get(roomCode);
     if (!room) return null;
 
@@ -236,7 +236,7 @@ export class GameStateManager {
 
     // Remove current player from active players
     room.gameState.activePlayers = room.gameState.activePlayers.filter(
-      (name) => name !== currentPlayer,
+      (name) => name !== currentPlayer
     );
 
     room.gameState.isTimerRunning = false;
@@ -257,7 +257,7 @@ export class GameStateManager {
     room.gameState.timeLeft = GAME_CONSTANTS.TURN_TIME;
     room.gameState.isTimerRunning = true;
 
-    return { type: "continue", room };
+    return { type: 'continue', room };
   }
 
   endRound(roomCode: string): EliminationResult | null {
@@ -274,7 +274,7 @@ export class GameStateManager {
     // Check if game is over (first to 3 wins)
     if (room.gameState.roundWins[winner] >= GAME_CONSTANTS.WINS_TO_END_GAME) {
       room.gameState.roundActive = false; // End the game
-      return { type: "gameEnd", room, winner };
+      return { type: 'gameEnd', room, winner };
     }
 
     // Calculate next starting player - the player after the winner in the original rotation
@@ -292,7 +292,7 @@ export class GameStateManager {
     room.gameState.roundActive = true; // Keep this TRUE for new round
     room.gameState.currentCategory = getRandomCategory();
 
-    return { type: "roundEnd", room };
+    return { type: 'roundEnd', room };
   }
 
   // Cleanup old rooms
@@ -318,7 +318,7 @@ export class GameStateManager {
     this.playerConnections.clear();
     this.roomTimers.clear();
 
-    console.log("GameStateManager cleanup completed");
+    console.log('GameStateManager cleanup completed');
   }
 
   // Future database integration points

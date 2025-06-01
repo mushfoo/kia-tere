@@ -1,7 +1,7 @@
-import React from 'react'
-import ReactDOM from 'react-dom/client'
-import './index.css'
-import App from './App'
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import './index.css';
+import App from './App';
 
 // Defensive check to avoid errors from injected/incomplete ethereum providers
 if (
@@ -15,18 +15,18 @@ if (
 
 declare global {
   interface Window {
-    ethereum?: any
+    ethereum?: any;
   }
 }
 
-const rootElement = document.getElementById('root')
+const rootElement = document.getElementById('root');
 if (rootElement) {
-  const root = ReactDOM.createRoot(rootElement)
+  const root = ReactDOM.createRoot(rootElement);
   root.render(
     <React.StrictMode>
       <App />
     </React.StrictMode>
-  )
+  );
 } else {
-  throw new Error('Root element not found')
+  throw new Error('Root element not found');
 }

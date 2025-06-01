@@ -1,5 +1,7 @@
 # Kia Tere 🏃‍♂️
 
+[![CI Pipeline](https://github.com/campbell-rehu/kia-tere/actions/workflows/ci.yml/badge.svg)](https://github.com/campbell-rehu/kia-tere/actions/workflows/ci.yml)
+
 _"Hurry up!" in Te Reo Māori_
 
 A fast-paced multiplayer word game where players race against time to find words that match categories. Based on the popular board game Tapple, Kia Tere brings the excitement online with real-time multiplayer support.
@@ -23,6 +25,46 @@ A fast-paced multiplayer word game where players race against time to find words
 - ⚡ **Instant Turn Switching** - Seamless gameplay flow
 - 🏆 **Score Tracking** - Track wins across rounds
 - 🎨 **Modern UI** - Clean, professional design
+
+## 🛠️ Development
+
+### CI Pipeline
+
+This project uses GitHub Actions for continuous integration. The pipeline:
+
+- **Runs on**: Pull requests to `main` and pushes to `main`
+- **Client Pipeline**: Installs dependencies, builds the React app, and runs tests
+- **Server Pipeline**: Installs dependencies, compiles TypeScript, and runs Jest tests
+- **Parallel Execution**: Both client and server jobs run simultaneously for faster feedback
+- **Branch Protection**: PRs cannot be merged until both pipelines pass
+
+The CI configuration can be found in `.github/workflows/ci.yml`.
+
+### Running Tests Locally
+
+**Client tests:**
+
+```bash
+cd client
+npm test
+```
+
+**Server tests:**
+
+```bash
+cd server
+npm test
+```
+
+**Build verification:**
+
+```bash
+# Client build
+cd client && npm run build
+
+# Server build
+cd server && npm run build
+```
 
 ## 🚀 Quick Start
 
@@ -96,7 +138,7 @@ kia-tere/
 Update the WebSocket URL in `client/src/components/KiaTereGame.js`:
 
 ```javascript
-const wsUrl = "ws://your-server-url:8080";
+const wsUrl = 'ws://your-server-url:8080'
 ```
 
 ### Server Configuration
@@ -104,7 +146,7 @@ const wsUrl = "ws://your-server-url:8080";
 The server runs on port 8080 by default. To change:
 
 ```javascript
-const server = new KiaTereServer(3001); // Custom port
+const server = new KiaTereServer(3001) // Custom port
 ```
 
 ## 🌐 Deployment
@@ -259,8 +301,8 @@ Enable debug logging in server:
 
 ```javascript
 // Add to server.js
-const DEBUG = true;
-if (DEBUG) console.log("Debug message");
+const DEBUG = true
+if (DEBUG) console.log('Debug message')
 ```
 
 ## 📄 License
