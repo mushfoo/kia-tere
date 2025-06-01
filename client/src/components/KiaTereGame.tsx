@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import {
   Play,
-  Pause,
   RotateCcw,
   Users,
   Trophy,
@@ -14,26 +13,6 @@ import {
 } from 'lucide-react'
 
 // Types
-interface Player {
-  name: string
-  isConnected: boolean
-}
-
-interface GameState {
-  players: string[]
-  activePlayers: string[]
-  currentPlayerIndex: number
-  roundWins: Record<string, number>
-  currentCategory: string
-  usedLetters: string[]
-  timeLeft: number
-  isTimerRunning: boolean
-  roundActive: boolean
-  roundNumber: number
-  gameStarted: boolean
-  difficulty: 'easy' | 'hard'
-}
-
 interface WebSocketMessage {
   type: string
   [key: string]: any
@@ -122,32 +101,6 @@ const KiaTereGame: React.FC = () => {
   const wsRef = useRef<WebSocket | null>(null)
   const timerRef = useRef<NodeJS.Timeout | null>(null)
 
-  // Categories for the game
-  const categories: string[] = [
-    'Animals',
-    'Foods',
-    'Countries',
-    'Movies',
-    'Sports',
-    'Colors',
-    'Professions',
-    'Things in a Kitchen',
-    'School Subjects',
-    'Board Games',
-    'Fruits',
-    'Vegetables',
-    'Car Brands',
-    'TV Shows',
-    'Books',
-    'Things You Wear',
-    'Musical Instruments',
-    'Things in Nature',
-    'Superheroes',
-    'Pizza Toppings',
-    'Things in Space',
-    'Board Game Mechanics',
-  ]
-
   // Letters arranged in a grid - now using difficulty-based sets
   const letters: readonly string[] = LETTER_SETS[difficulty]
 
@@ -172,6 +125,7 @@ const KiaTereGame: React.FC = () => {
     []
   )
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleTimeUp = useCallback((): void => {
     if (activePlayers[currentPlayerIndex] === playerName) {
       sendWebSocketMessage({
