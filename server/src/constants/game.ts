@@ -47,7 +47,7 @@ export const LETTER_SETS = {
     'Y',
     'Z',
   ], // All 26 letters - includes challenging letters like Q, X, Z
-} as const
+} as const;
 
 export const CATEGORIES = [
   'Animals',
@@ -72,7 +72,7 @@ export const CATEGORIES = [
   'Pizza Toppings',
   'Things in Space',
   'Board Game Mechanics',
-] as const
+] as const;
 
 export const GAME_CONSTANTS = {
   TURN_TIME: 10,
@@ -80,4 +80,4 @@ export const GAME_CONSTANTS = {
   ROOM_TIMEOUT: 30 * 60 * 1000, // 30 minutes
   EMPTY_ROOM_TIMEOUT: 5 * 60 * 1000, // 5 minutes
   WINS_TO_END_GAME: 3,
-} as const
+} as const;

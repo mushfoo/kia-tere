@@ -1,4 +1,4 @@
-import { Difficulty } from '../types'
+import { Difficulty } from '../types';
 
 export const LETTER_SETS: Record<Difficulty, readonly string[]> = {
   easy: [
@@ -49,7 +49,7 @@ export const LETTER_SETS: Record<Difficulty, readonly string[]> = {
     'Y',
     'Z',
   ], // All 26 letters - includes challenging letters like Q, X, Z
-} as const
+} as const;
 
 export const CATEGORIES = [
   'Animals',
@@ -74,10 +74,10 @@ export const CATEGORIES = [
   'Pizza Toppings',
   'Things in Space',
   'Board Game Mechanics',
-] as const
+] as const;
 
 export const GAME_CONSTANTS = {
   TURN_TIME: 10, // seconds
   RECONNECT_DELAY: 3000, // milliseconds
   WS_URL: 'ws://10.0.0.3:9191',
-} as const
+} as const;

@@ -1,7 +1,7 @@
-import WebSocket from "ws";
-import { createServer } from "http";
-import { ExtendedWebSocket, WebSocketMessage } from "../types";
-import { GameStateManager } from "./GameStateManager";
+import WebSocket from 'ws';
+import { createServer } from 'http';
+import { ExtendedWebSocket, WebSocketMessage } from '../types';
+import { GameStateManager } from './GameStateManager';
 
 export class WebSocketServer {
   private port: number;
@@ -21,71 +21,71 @@ export class WebSocketServer {
   }
 
   private setupWebSocketHandlers(): void {
-    this.wss.on("connection", (ws: ExtendedWebSocket) => {
-      console.log("New WebSocket connection");
+    this.wss.on('connection', (ws: ExtendedWebSocket) => {
+      console.log('New WebSocket connection');
 
-      ws.on("message", (data: WebSocket.Data) => {
+      ws.on('message', (data: WebSocket.Data) => {
         try {
           const message: WebSocketMessage = JSON.parse(data.toString());
           this.handleMessage(ws, message);
         } catch (error) {
-          console.error("Error parsing message:", error);
-          this.sendError(ws, "Invalid message format");
+          console.error('Error parsing message:', error);
+          this.sendError(ws, 'Invalid message format');
         }
       });
 
-      ws.on("close", () => {
+      ws.on('close', () => {
         this.handleDisconnection(ws);
       });
 
-      ws.on("error", (error: Error) => {
-        console.error("WebSocket error:", error);
+      ws.on('error', (error: Error) => {
+        console.error('WebSocket error:', error);
       });
     });
   }
 
   public handleMessage(ws: ExtendedWebSocket, message: WebSocketMessage): void {
     switch (message.type) {
-      case "CREATE_ROOM":
+      case 'CREATE_ROOM':
         this.handleCreateRoom(ws, message);
         break;
 
-      case "JOIN_ROOM":
+      case 'JOIN_ROOM':
         this.handleJoinRoom(ws, message);
         break;
 
-      case "START_GAME":
+      case 'START_GAME':
         this.handleStartGame(ws, message);
         break;
 
-      case "START_TURN":
+      case 'START_TURN':
         this.handleStartTurn(ws, message);
         break;
 
-      case "END_TURN":
+      case 'END_TURN':
         this.handleEndTurn(ws, message);
         break;
 
-      case "TIME_UP":
+      case 'TIME_UP':
         this.handleTimeUp(ws, message);
         break;
 
-      case "TIMER_UPDATE":
+      case 'TIMER_UPDATE':
         this.handleTimerUpdate(ws, message);
         break;
 
-      case "SET_DIFFICULTY":
+      case 'SET_DIFFICULTY':
         this.handleSetDifficulty(ws, message);
         break;
 
       default:
-        this.sendError(ws, "Unknown message type");
+        this.sendError(ws, 'Unknown message type');
     }
   }
 
   private handleCreateRoom(
     ws: ExtendedWebSocket,
-    message: WebSocketMessage,
+    message: WebSocketMessage
   ): void {
     const room = this.gameManager.createRoom(message.playerName);
     ws.roomCode = room.roomCode;
@@ -94,7 +94,7 @@ export class WebSocketServer {
     this.gameManager.setPlayerConnection(message.playerName, ws);
 
     this.send(ws, {
-      type: "ROOM_CREATED",
+      type: 'ROOM_CREATED',
       roomCode: room.roomCode,
     });
 
@@ -103,15 +103,15 @@ export class WebSocketServer {
 
   private handleJoinRoom(
     ws: ExtendedWebSocket,
-    message: WebSocketMessage,
+    message: WebSocketMessage
   ): void {
     const room = this.gameManager.joinRoom(
       message.roomCode,
-      message.playerName,
+      message.playerName
     );
 
     if (!room) {
-      this.sendError(ws, "Room not found");
+      this.sendError(ws, 'Room not found');
       return;
     }
 
@@ -122,7 +122,7 @@ export class WebSocketServer {
 
     // Send room state to joining player
     this.send(ws, {
-      type: "ROOM_JOINED",
+      type: 'ROOM_JOINED',
       roomCode: room.roomCode,
       players: room.players,
       connectedPlayers: room.connectedPlayers,
@@ -131,7 +131,7 @@ export class WebSocketServer {
     // If game is in progress, send game state
     if (room.gameState.gameStarted) {
       this.send(ws, {
-        type: "GAME_STARTED",
+        type: 'GAME_STARTED',
         gameState: room.gameState,
       });
     }
@@ -140,11 +140,11 @@ export class WebSocketServer {
     this.broadcastToRoom(
       room.roomCode,
       {
-        type: "PLAYER_JOINED",
+        type: 'PLAYER_JOINED',
         players: room.players,
         connectedPlayers: room.connectedPlayers,
       },
-      message.playerName,
+      message.playerName
     );
 
     console.log(`${message.playerName} joined room: ${message.roomCode}`);
@@ -152,35 +152,35 @@ export class WebSocketServer {
 
   private handleStartGame(
     ws: ExtendedWebSocket,
-    message: WebSocketMessage,
+    message: WebSocketMessage
   ): void {
     const room = this.gameManager.getRoom(ws.roomCode!);
     if (!room || room.host !== ws.playerName) {
-      this.sendError(ws, "Not authorized to start game");
+      this.sendError(ws, 'Not authorized to start game');
       return;
     }
 
     if (room.players.length < 2) {
-      this.sendError(ws, "Need at least 2 players to start");
+      this.sendError(ws, 'Need at least 2 players to start');
       return;
     }
 
-    const difficulty = message.difficulty || "easy";
+    const difficulty = message.difficulty || 'easy';
     this.gameManager.startGame(ws.roomCode!, difficulty);
 
     this.broadcastToRoom(ws.roomCode!, {
-      type: "GAME_STARTED",
+      type: 'GAME_STARTED',
       gameState: room.gameState,
     });
 
     console.log(
-      `Game started in room: ${ws.roomCode} with ${difficulty} difficulty`,
+      `Game started in room: ${ws.roomCode} with ${difficulty} difficulty`
     );
   }
 
   private handleStartTurn(
     ws: ExtendedWebSocket,
-    message: WebSocketMessage,
+    message: WebSocketMessage
   ): void {
     const room = this.gameManager.getRoom(ws.roomCode!);
     if (!room) return;
@@ -188,21 +188,21 @@ export class WebSocketServer {
     const currentPlayer =
       room.gameState.activePlayers[room.gameState.currentPlayerIndex];
     if (currentPlayer !== ws.playerName) {
-      this.sendError(ws, "Not your turn");
+      this.sendError(ws, 'Not your turn');
       return;
     }
 
     this.gameManager.startTurn(ws.roomCode!);
 
     this.broadcastToRoom(ws.roomCode!, {
-      type: "GAME_STATE_UPDATE",
+      type: 'GAME_STATE_UPDATE',
       gameState: room.gameState,
     });
   }
 
   private handleEndTurn(
     ws: ExtendedWebSocket,
-    message: WebSocketMessage,
+    message: WebSocketMessage
   ): void {
     const room = this.gameManager.getRoom(ws.roomCode!);
     if (!room) return;
@@ -210,14 +210,14 @@ export class WebSocketServer {
     const currentPlayer =
       room.gameState.activePlayers[room.gameState.currentPlayerIndex];
     if (currentPlayer !== ws.playerName) {
-      this.sendError(ws, "Not your turn");
+      this.sendError(ws, 'Not your turn');
       return;
     }
 
     this.gameManager.endTurn(ws.roomCode!, message.selectedLetter);
 
     this.broadcastToRoom(ws.roomCode!, {
-      type: "GAME_STATE_UPDATE",
+      type: 'GAME_STATE_UPDATE',
       gameState: room.gameState,
     });
   }
@@ -234,16 +234,16 @@ export class WebSocketServer {
 
     if (!result) return;
 
-    if (result.type === "gameEnd") {
+    if (result.type === 'gameEnd') {
       this.broadcastToRoom(ws.roomCode!, {
-        type: "GAME_END",
+        type: 'GAME_END',
         roundWins: result.room.gameState.roundWins,
         winner: result.winner,
       });
-    } else if (result.type === "roundEnd") {
+    } else if (result.type === 'roundEnd') {
       // Send ROUND_END with full gameState - THIS WAS MISSING
       this.broadcastToRoom(ws.roomCode!, {
-        type: "ROUND_END",
+        type: 'ROUND_END',
         gameState: result.room.gameState, // ADD THIS LINE
         roundWins: result.room.gameState.roundWins,
         roundNumber: result.room.gameState.roundNumber,
@@ -258,7 +258,7 @@ export class WebSocketServer {
       }
     } else {
       this.broadcastToRoom(ws.roomCode!, {
-        type: "GAME_STATE_UPDATE",
+        type: 'GAME_STATE_UPDATE',
         gameState: result.room.gameState,
       });
     }
@@ -266,7 +266,7 @@ export class WebSocketServer {
 
   private handleTimerUpdate(
     ws: ExtendedWebSocket,
-    message: WebSocketMessage,
+    message: WebSocketMessage
   ): void {
     const room = this.gameManager.getRoom(ws.roomCode!);
     if (!room) return;
@@ -280,20 +280,20 @@ export class WebSocketServer {
     this.broadcastToRoom(
       ws.roomCode!,
       {
-        type: "TIMER_UPDATE",
+        type: 'TIMER_UPDATE',
         timeLeft: message.timeLeft,
       },
-      ws.playerName,
+      ws.playerName
     );
   }
 
   private handleSetDifficulty(
     ws: ExtendedWebSocket,
-    message: WebSocketMessage,
+    message: WebSocketMessage
   ): void {
     const room = this.gameManager.getRoom(ws.roomCode!);
     if (!room || room.host !== ws.playerName) {
-      this.sendError(ws, "Not authorized to change difficulty");
+      this.sendError(ws, 'Not authorized to change difficulty');
       return;
     }
 
@@ -302,12 +302,12 @@ export class WebSocketServer {
 
     // Broadcast the change to all players
     this.broadcastToRoom(ws.roomCode!, {
-      type: "GAME_STATE_UPDATE",
+      type: 'GAME_STATE_UPDATE',
       gameState: room.gameState,
     });
 
     console.log(
-      `Difficulty changed to ${message.difficulty} in room: ${ws.roomCode}`,
+      `Difficulty changed to ${message.difficulty} in room: ${ws.roomCode}`
     );
   }
 
@@ -317,7 +317,7 @@ export class WebSocketServer {
 
       if (room) {
         this.broadcastToRoom(ws.roomCode, {
-          type: "PLAYER_LEFT",
+          type: 'PLAYER_LEFT',
           players: room.players,
           connectedPlayers: room.connectedPlayers,
         });
@@ -337,7 +337,7 @@ export class WebSocketServer {
 
   private sendError(ws: ExtendedWebSocket, message: string): void {
     this.send(ws, {
-      type: "ERROR",
+      type: 'ERROR',
       message,
     });
   }
@@ -345,7 +345,7 @@ export class WebSocketServer {
   private broadcastToRoom(
     roomCode: string,
     message: WebSocketMessage,
-    excludePlayer?: string,
+    excludePlayer?: string
   ): void {
     const room = this.gameManager.getRoom(roomCode);
     if (!room) return;
@@ -365,7 +365,7 @@ export class WebSocketServer {
       () => {
         this.gameManager.cleanupRooms();
       },
-      5 * 60 * 1000,
+      5 * 60 * 1000
     );
   }
 

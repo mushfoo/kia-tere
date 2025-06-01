@@ -1,0 +1,32 @@
+{
+  "name": "kia-tere",
+  "version": "1.0.0",
+  "description": "Multiplayer word game - Kia Tere",
+  "private": true,
+  "workspaces": [
+    "client",
+    "server"
+  ],
+  "scripts": {
+    "prepare": "husky install",
+    "lint:check": "npm run lint:check --workspace=client && npm run lint:check --workspace=server",
+    "format:check": "npm run format:check --workspace=client && npm run format:check --workspace=server",
+    "check": "npm run lint:check && npm run format:check",
+    "fix": "npm run fix --workspace=client && npm run fix --workspace=server"
+  },
+  "devDependencies": {
+    "husky": "^8.0.3",
+    "typescript": "^5.8.3"
+  },
+  "keywords": [
+    "game",
+    "multiplayer",
+    "kia-tere",
+    "maori",
+    "typescript",
+    "react",
+    "websocket"
+  ],
+  "author": "",
+  "license": "MIT"
+}
