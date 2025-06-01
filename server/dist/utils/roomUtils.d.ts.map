@@ -1,0 +1,1 @@
+{"version":3,"file":"roomUtils.d.ts","sourceRoot":"","sources":["../../src/utils/roomUtils.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,IAAI,EAAE,SAAS,EAAE,MAAM,UAAU,CAAA;AAM1C,wBAAgB,gBAAgB,IAAI,MAAM,CAOzC;AAKD,wBAAgB,sBAAsB,CAAC,OAAO,EAAE,MAAM,EAAE,GAAG,SAAS,CAmBnE;AAKD,wBAAgB,iBAAiB,CAAC,IAAI,EAAE,IAAI,GAAG,OAAO,CAMrD;AAKD,wBAAgB,iBAAiB,IAAI,MAAM,CAE1C"}
