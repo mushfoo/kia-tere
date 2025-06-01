@@ -99,19 +99,41 @@ const KiaTereGame: React.FC = () => {
   const [difficulty, setDifficulty] = useState<Difficulty>('easy')
 
   const wsRef = useRef<WebSocket | null>(null)
-  const timerRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Categories for the game
+  const categories: string[] = [
+    'Animals',
+    'Foods',
+    'Countries',
+    'Movies',
+    'Sports',
+    'Colors',
+    'Professions',
+    'Things in a Kitchen',
+    'School Subjects',
+    'Board Games',
+    'Fruits',
+    'Vegetables',
+    'Car Brands',
+    'TV Shows',
+    'Books',
+    'Things You Wear',
+    'Musical Instruments',
+    'Things in Nature',
+    'Superheroes',
+    'Pizza Toppings',
+    'Things in Space',
+    'Board Game Mechanics',
+  ]
 
   // Letters arranged in a grid - now using difficulty-based sets
   const letters: readonly string[] = LETTER_SETS[difficulty]
 
-  // WebSocket connection
+  // WebSocket connection cleanup
   useEffect(() => {
     return () => {
       if (wsRef.current) {
         wsRef.current.close()
-      }
-      if (timerRef.current) {
-        clearTimeout(timerRef.current)
       }
     }
   }, [])
@@ -127,49 +149,12 @@ const KiaTereGame: React.FC = () => {
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleTimeUp = useCallback((): void => {
-    if (activePlayers[currentPlayerIndex] === playerName) {
-      sendWebSocketMessage({
-        type: 'TIME_UP',
-      })
-    }
-  }, [activePlayers, currentPlayerIndex, playerName, sendWebSocketMessage])
-
-  // Timer effect
-  useEffect(() => {
-    if (isTimerRunning && timeLeft > 0) {
-      timerRef.current = setTimeout(() => {
-        const newTime = timeLeft - 1
-        setTimeLeft(newTime)
-        // Send timer update to other players
-        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-          wsRef.current.send(
-            JSON.stringify({
-              type: 'TIMER_UPDATE',
-              timeLeft: newTime,
-            })
-          )
-        }
-      }, 1000)
-    } else if (timeLeft === 0 && isTimerRunning) {
-      handleTimeUp()
-    }
-    return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current)
-      }
-    }
-  }, [timeLeft, isTimerRunning, handleTimeUp])
-
-  // Clear timer when switching players to prevent flashing
-  useEffect(() => {
-    if (timerRef.current) {
-      clearTimeout(timerRef.current)
-    }
-    // Reset timer immediately when it's not the current player's turn
-    if (activePlayers[currentPlayerIndex] !== playerName && isTimerRunning) {
-      setTimeLeft(10)
-    }
-  }, [currentPlayerIndex, activePlayers, playerName, isTimerRunning])
+    // This is now only for manual timeout if needed
+    // The server handles automatic timeouts
+    sendWebSocketMessage({
+      type: 'TIME_UP',
+    })
+  }, [sendWebSocketMessage])
 
   const connectWebSocket = (): void => {
     // Replace with your WebSocket server URL
@@ -257,23 +242,42 @@ const KiaTereGame: React.FC = () => {
         setActivePlayers(message.gameState.activePlayers)
         setCurrentPlayerIndex(message.gameState.currentPlayerIndex)
         setUsedLetters(new Set(message.gameState.usedLetters))
-        setTimeLeft(10) // Always reset to 10 for clean state
+        setTimeLeft(message.gameState.timeLeft) // Use server timer value
         setIsTimerRunning(message.gameState.isTimerRunning)
         setSelectedLetter(null)
         break
 
       case 'TIMER_UPDATE':
-        // Only update timer if it's not my turn (to avoid conflicts)
-        if (activePlayers[currentPlayerIndex] !== playerName) {
-          setTimeLeft(message.timeLeft)
-        }
+        // Always update timer from server - no conditions needed
+        setTimeLeft(message.timeLeft)
         break
 
       case 'ROUND_END':
+        // Update all game state for new round
+        if (message.gameState) {
+          console.log(`[DEBUG] Updating game state from ROUND_END`)
+          console.log(
+            `[DEBUG] New category: ${message.gameState.currentCategory}`
+          )
+          console.log(
+            `[DEBUG] Timer: ${message.gameState.timeLeft}s, running: ${message.gameState.isTimerRunning}`
+          )
+          console.log(`[DEBUG] Round active: ${message.gameState.roundActive}`)
+
+          setActivePlayers(message.gameState.activePlayers)
+          setCurrentPlayerIndex(message.gameState.currentPlayerIndex)
+          setUsedLetters(new Set(message.gameState.usedLetters))
+          setCurrentCategory(message.gameState.currentCategory)
+          setTimeLeft(message.gameState.timeLeft)
+          setIsTimerRunning(message.gameState.isTimerRunning)
+          setRoundActive(message.gameState.roundActive) // Use server value, don't hardcode false!
+        } else {
+          console.log(`[DEBUG] No gameState in ROUND_END message!`)
+        }
+
         setRoundWins(message.roundWins)
         setRoundNumber(message.roundNumber)
-        setRoundActive(false)
-        setIsTimerRunning(false)
+        setSelectedLetter(null)
         break
 
       case 'GAME_END':
@@ -640,8 +644,11 @@ const KiaTereGame: React.FC = () => {
     )
   }
 
-  const currentPlayer = activePlayers[currentPlayerIndex]
-  const isMyTurn = currentPlayer === playerName
+  const currentPlayer =
+    activePlayers && activePlayers.length > 0
+      ? activePlayers[currentPlayerIndex] || activePlayers[0]
+      : players[0] || 'Unknown'
+  const isMyTurn = currentPlayer === playerName && currentPlayer !== 'Unknown'
 
   // Playing Game
   return (
@@ -705,7 +712,7 @@ const KiaTereGame: React.FC = () => {
               </div>
             </div>
 
-            {roundActive && (
+            {activePlayers.length > 0 && (
               <div
                 className={`rounded-xl p-4 border ${
                   isMyTurn ? 'bg-green-50 border-green-200' : 'bg-slate-50'
