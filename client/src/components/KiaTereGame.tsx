@@ -123,7 +123,7 @@ const KiaTereGame: React.FC = () => {
 
   const connectWebSocket = (): void => {
     // Replace with your WebSocket server URL
-    const wsUrl = 'ws://10.0.0.3:9191';
+    const wsUrl = 'ws://localhost:9191';
     wsRef.current = new WebSocket(wsUrl);
 
     wsRef.current.onopen = () => {

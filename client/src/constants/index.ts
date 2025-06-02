@@ -79,5 +79,5 @@ export const CATEGORIES = [
 export const GAME_CONSTANTS = {
   TURN_TIME: 10, // seconds
   RECONNECT_DELAY: 3000, // milliseconds
-  WS_URL: 'ws://10.0.0.3:9191',
+  WS_URL: 'ws://localhost:9191',
 } as const;
