@@ -11,12 +11,24 @@ export class WebSocketServer {
   private cleanupInterval?: NodeJS.Timeout;
   private roundTimeouts: Map<string, NodeJS.Timeout> = new Map();
 
-  constructor(port: number = 8080) {
+  constructor(port: number = 9191) {
     this.port = port;
     this.gameManager = new GameStateManager();
     this.server = createServer();
-    this.wss = new WebSocket.Server({ server: this.server });
 
+    // Add CORS for production
+    if (process.env.NODE_ENV === 'production') {
+      const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [];
+      this.wss = new WebSocket.Server({
+        server: this.server,
+        verifyClient: (info: { origin: string }) => {
+          const origin = info.origin;
+          return allowedOrigins.includes(origin);
+        },
+      });
+    } else {
+      this.wss = new WebSocket.Server({ server: this.server });
+    }
     this.setupWebSocketHandlers();
   }
 
