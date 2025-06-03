@@ -14,7 +14,11 @@ export class WebSocketServer {
   constructor(port: number = 9191) {
     this.port = port;
     this.gameManager = new GameStateManager();
-    this.server = createServer();
+    this.server = createServer((req, res) => {
+      if (req.method === 'GET' && req.url === '/health') {
+        res.statusCode = 200;
+      }
+    });
 
     // Add CORS for production
     if (process.env.NODE_ENV === 'production') {
@@ -391,6 +395,7 @@ export class WebSocketServer {
     this.server.listen(this.port, () => {
       console.log(`Kia Tere WebSocket server running on port ${this.port}`);
       console.log(`WebSocket URL: ws://localhost:${this.port}`);
+
       this.startCleanupInterval();
     });
   }
