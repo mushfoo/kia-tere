@@ -100,10 +100,11 @@ cd server && npm run build
 
    ```bash
    cd ../server
+   npm run build
    npm start
    ```
 
-   Server will run on `ws://localhost:8080`
+   Server will run on `ws://localhost:9191`
 
 5. **Start the client**
    ```bash
@@ -138,12 +139,12 @@ kia-tere/
 Update the WebSocket URL in `client/src/components/KiaTereGame.js`:
 
 ```javascript
-const wsUrl = 'ws://your-server-url:8080'
+const wsUrl = 'ws://your-server-url:9191'
 ```
 
 ### Server Configuration
 
-The server runs on port 8080 by default. To change:
+The server runs on port 9191 by default. To change:
 
 ```javascript
 const server = new KiaTereServer(3001) // Custom port
@@ -186,7 +187,7 @@ WORKDIR /app
 COPY server/package*.json ./
 RUN npm install
 COPY server/ .
-EXPOSE 8080
+EXPOSE 9191
 CMD ["npm", "start"]
 ```
 
