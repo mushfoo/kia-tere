@@ -45,7 +45,7 @@ jobs:
 
   server:
     name: Server Build & Test
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     defaults:
       run:
@@ -92,7 +92,6 @@ jobs:
       - name: Deploy to Railway
         run: |
           cd server
-          railway login --browserless
           railway up --detach --service=${{ env.SVC_ID }}
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
