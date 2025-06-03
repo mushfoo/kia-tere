@@ -261,50 +261,7 @@ Recommended databases:
 
 ## 🤝 Contributing
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-### Development Guidelines
-
-- Use meaningful commit messages
-- Follow existing code style
-- Add tests for new features
-- Update documentation as needed
-
 ## 🐛 Troubleshooting
-
-### Common Issues
-
-**Client can't connect to server**
-
-- Check WebSocket URL is correct
-- Ensure server is running
-- Check firewall settings
-
-**Players getting disconnected**
-
-- Check network stability
-- Server may need restart
-- Check browser WebSocket support
-
-**Game state desync**
-
-- Refresh browser
-- Rejoin room with room code
-- Check server logs
-
-### Debug Mode
-
-Enable debug logging in server:
-
-```javascript
-// Add to server.js
-const DEBUG = true
-if (DEBUG) console.log('Debug message')
-```
 
 ## 📄 License
 
