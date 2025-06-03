@@ -100,10 +100,11 @@ cd server && npm run build
 
    ```bash
    cd ../server
+   npm run build
    npm start
    ```
 
-   Server will run on `ws://localhost:8080`
+   Server will run on `ws://localhost:9191`
 
 5. **Start the client**
    ```bash
@@ -138,56 +139,15 @@ kia-tere/
 Update the WebSocket URL in `client/src/components/KiaTereGame.js`:
 
 ```javascript
-const wsUrl = 'ws://your-server-url:8080'
+const wsUrl = 'ws://your-server-url:9191'
 ```
 
 ### Server Configuration
 
-The server runs on port 8080 by default. To change:
+The server runs on port 9191 by default. To change:
 
 ```javascript
 const server = new KiaTereServer(3001) // Custom port
-```
-
-## 🌐 Deployment
-
-### Local Development
-
-- Server: `npm start` in `server/` directory
-- Client: `npm start` in `client/` directory
-
-### Production Deployment
-
-#### Option 1: Railway (Recommended)
-
-1. Connect your GitHub repo to Railway
-2. Deploy the server from the `server/` directory
-3. Deploy the client as a static site
-4. Update WebSocket URL in client
-
-#### Option 2: Heroku
-
-```bash
-# Server deployment
-cd server
-git subtree push --prefix server heroku-server main
-
-# Client deployment
-cd client
-git subtree push --prefix client heroku-client main
-```
-
-#### Option 3: Docker
-
-```dockerfile
-# Dockerfile example for server
-FROM node:16
-WORKDIR /app
-COPY server/package*.json ./
-RUN npm install
-COPY server/ .
-EXPOSE 8080
-CMD ["npm", "start"]
 ```
 
 ## 🎯 Game Rules
@@ -233,78 +193,6 @@ CMD ["npm", "start"]
 - `PLAYER_JOINED/LEFT` - Player connection updates
 - `ROUND_END/GAME_END` - Round or game completed
 
-## 🗄️ Future Database Integration
-
-The server architecture is designed for easy database integration:
-
-```javascript
-// Example database methods (ready to implement)
-async saveRoom(room) {
-  // Save room state to database
-}
-
-async loadRoom(roomCode) {
-  // Load room from database
-}
-
-async saveGameEvent(roomCode, event) {
-  // Log events for analytics
-}
-```
-
-Recommended databases:
-
-- **PostgreSQL** with real-time subscriptions (Supabase)
-- **MongoDB** for flexible document storage
-- **Redis** for session management and caching
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-### Development Guidelines
-
-- Use meaningful commit messages
-- Follow existing code style
-- Add tests for new features
-- Update documentation as needed
-
-## 🐛 Troubleshooting
-
-### Common Issues
-
-**Client can't connect to server**
-
-- Check WebSocket URL is correct
-- Ensure server is running
-- Check firewall settings
-
-**Players getting disconnected**
-
-- Check network stability
-- Server may need restart
-- Check browser WebSocket support
-
-**Game state desync**
-
-- Refresh browser
-- Rejoin room with room code
-- Check server logs
-
-### Debug Mode
-
-Enable debug logging in server:
-
-```javascript
-// Add to server.js
-const DEBUG = true
-if (DEBUG) console.log('Debug message')
-```
-
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
@@ -314,13 +202,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Inspired by the board game Tapple
 - Built with React and WebSockets
 - Name "Kia Tere" means "hurry up" in Te Reo Māori
-
-## 📞 Support
-
-- Create an issue for bug reports
-- Discussions for feature requests
-- Check existing issues before creating new ones
-
----
-
-**Kia tere! Hurry up and start playing!** 🎮
