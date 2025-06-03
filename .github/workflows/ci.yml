@@ -93,7 +93,7 @@ jobs:
         run: |
           cd server
           railway login --browserless
-          railway up --detach
+          railway up --detach --service=${{ env.SVC_ID }}
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
 
