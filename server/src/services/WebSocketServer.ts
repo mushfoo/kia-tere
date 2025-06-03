@@ -11,12 +11,28 @@ export class WebSocketServer {
   private cleanupInterval?: NodeJS.Timeout;
   private roundTimeouts: Map<string, NodeJS.Timeout> = new Map();
 
-  constructor(port: number = 8080) {
+  constructor(port: number = 9191) {
     this.port = port;
     this.gameManager = new GameStateManager();
-    this.server = createServer();
-    this.wss = new WebSocket.Server({ server: this.server });
+    this.server = createServer((req, res) => {
+      if (req.method === 'GET' && req.url === '/health') {
+        res.statusCode = 200;
+      }
+    });
 
+    // Add CORS for production
+    if (process.env.NODE_ENV === 'production') {
+      const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [];
+      this.wss = new WebSocket.Server({
+        server: this.server,
+        verifyClient: (info: { origin: string }) => {
+          const origin = info.origin;
+          return allowedOrigins.includes(origin);
+        },
+      });
+    } else {
+      this.wss = new WebSocket.Server({ server: this.server });
+    }
     this.setupWebSocketHandlers();
   }
 
@@ -379,6 +395,7 @@ export class WebSocketServer {
     this.server.listen(this.port, () => {
       console.log(`Kia Tere WebSocket server running on port ${this.port}`);
       console.log(`WebSocket URL: ws://localhost:${this.port}`);
+
       this.startCleanupInterval();
     });
   }
