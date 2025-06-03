@@ -88,6 +88,11 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Debug Secret Access
+        run: echo "RAILWAY_TOKEN is set"
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+
       - name: Deploy to Railway
         run: |
           cd server
