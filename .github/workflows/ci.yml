@@ -124,9 +124,9 @@ jobs:
       - name: Deploy to Vercel
         run: |
           cd client
-          npx vercel --prod --token ${{ secrets.VERCEL_TOKEN }}
+          npx vercel deploy --prod --token ${{ secrets.VERCEL_TOKEN }}
         env:
-          REACT_APP_WS_URL: ${{ secrets.REACT_APP_WS_URL }}
+          REACT_APP_WS_URL: ${{ vars.REACT_APP_WS_URL }}
 
   ci-success:
     name: CI Success
