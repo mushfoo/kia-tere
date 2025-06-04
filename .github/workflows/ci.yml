@@ -98,6 +98,11 @@ jobs:
         with:
           clean: true
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+
       - name: Install Railway CLI
         run: |
           if ! command -v railway &> /dev/null; then
