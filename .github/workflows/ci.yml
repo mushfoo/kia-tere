@@ -86,17 +86,25 @@ jobs:
     environment: production
     container: ghcr.io/railwayapp/cli:latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          clean: true
 
-      - name: Debug Secret Access
-        run: echo "RAILWAY_TOKEN is set"
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
 
       - name: Deploy to Railway
+        id: deploy
         run: |
           cd server
-          railway up --service=${{ env.SVC_ID }}
+          railway login --browserless
+          railway up --detach --service=${{ env.SVC_ID }}
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
           SVC_ID: ${{ vars.SVC_ID }}
@@ -107,10 +115,10 @@ jobs:
     runs-on: self-hosted
     environment: production
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: "18"
           cache: "npm"
