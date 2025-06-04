@@ -13,7 +13,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: client
+        working-directory: ./client
 
     steps:
       - name: Checkout code
@@ -54,7 +54,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: server
+        working-directory: ./server
 
     steps:
       - name: Checkout code
