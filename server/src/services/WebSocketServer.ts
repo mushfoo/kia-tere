@@ -30,7 +30,6 @@ export class WebSocketServer {
     if (process.env.NODE_ENV === 'production') {
       const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [];
       this.wss = new WebSocket.Server({
-        port: this.port,
         server: this.server,
         verifyClient: (info: { origin: string }) => {
           const origin = info.origin;
