@@ -30,6 +30,7 @@ export class WebSocketServer {
     if (process.env.NODE_ENV === 'production') {
       const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [];
       this.wss = new WebSocket.Server({
+        port: this.port,
         server: this.server,
         verifyClient: (info: { origin: string }) => {
           const origin = info.origin;
@@ -44,7 +45,10 @@ export class WebSocketServer {
 
   private setupWebSocketHandlers(): void {
     this.wss.on('connection', (ws: ExtendedWebSocket) => {
-      console.log('New WebSocket connection');
+      console.log(
+        'New WebSocket connection established from',
+        this.wss.clients.values()
+      );
 
       ws.on('message', (data: WebSocket.Data) => {
         try {
