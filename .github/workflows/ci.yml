@@ -110,10 +110,9 @@ jobs:
           fi
 
       - name: Deploy to Railway
-        working-directory: ./server
         run: |
           echo "Deploying server to Railway..."
-          railway up --service ${{ secrets.RAILWAY_SERVICE_ID }}
+          railway up --service ${{ secrets.RAILWAY_SERVER_SERVICE_ID }}
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
 
@@ -137,40 +136,19 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "18"
-          cache: "npm"
-          cache-dependency-path: "./client/package-lock.json"
 
-      - name: Install Vercel CLI
+      - name: Install Railway CLI
         run: |
-          if ! command -v vercel &> /dev/null; then
-            npm install -g vercel@latest
+          if ! command -v railway &> /dev/null; then
+            npm install -g @railway/cli
           fi
 
-      - name: Install client dependencies
-        working-directory: ./client
-        run: npm ci --legacy-peer-deps
-
-      - name: Create production environment file
-        working-directory: ./client
+      - name: Deploy to Railway
         run: |
-          echo "REACT_APP_WS_URL=${{ vars.REACT_APP_WS_URL }}" > .env.production
-          cat .env.production
-
-      - name: Build client
-        working-directory: ./client
-        run: npm run build
+          echo "Deploying client to Railway..."
+          railway up --service ${{ secrets.RAILWAY_CLIENT_SERVICE_ID }}
         env:
-          NODE_ENV: production
-
-      - name: Deploy to Vercel
-        working-directory: ./client
-        run: |
-          vercel link --yes --token ${{ secrets.VERCEL_TOKEN }}
-
-          vercel deploy --prod --prebuilt --token ${{ secrets.VERCEL_TOKEN }}
-        env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
 
   cleanup:
     name: Cleanup
