@@ -33,11 +33,15 @@ export function useWebSocket({
     wsRef.current.onopen = () => {
       setConnectionStatus('connected');
       if (roomCode) {
-        sendMessage({
-          type: 'JOIN_ROOM',
-          roomCode,
-          playerName,
-        });
+        if (wsRef.current) {
+          wsRef.current.send(
+            JSON.stringify({
+              type: 'JOIN_ROOM',
+              roomCode,
+              playerName,
+            })
+          );
+        }
       }
     };
 
@@ -59,7 +63,7 @@ export function useWebSocket({
     wsRef.current.onerror = () => {
       setConnectionStatus('error');
     };
-  }, [roomCode, playerName, onMessage, sendMessage]);
+  }, [roomCode, playerName, onMessage]);
 
   useEffect(() => {
     return () => {

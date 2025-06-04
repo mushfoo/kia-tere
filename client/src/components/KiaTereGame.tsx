@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   Play,
   RotateCcw,
@@ -11,17 +11,8 @@ import {
   Copy,
   Check,
 } from 'lucide-react';
-import { GAME_CONSTANTS } from '../constants';
-
-// Types
-interface WebSocketMessage {
-  type: string;
-  [key: string]: any;
-}
-
-type ConnectionStatus = 'connected' | 'connecting' | 'disconnected' | 'error';
-type GamePhase = 'menu' | 'lobby' | 'playing' | 'gameOver';
-type Difficulty = 'easy' | 'hard';
+import { useWebSocket } from '../hooks/useWebSocket';
+import { WebSocketMessage, GamePhase, Difficulty } from '../types';
 
 // Letter difficulty constants based on frequency and word availability
 const LETTER_SETS = {
@@ -94,174 +85,120 @@ const KiaTereGame: React.FC = () => {
   const [activePlayers, setActivePlayers] = useState<string[]>([]);
   const [roundNumber, setRoundNumber] = useState<number>(1);
   const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
-  const [connectionStatus, setConnectionStatus] =
-    useState<ConnectionStatus>('disconnected');
   const [copySuccess, setCopySuccess] = useState<boolean>(false);
   const [difficulty, setDifficulty] = useState<Difficulty>('easy');
-
-  const wsRef = useRef<WebSocket | null>(null);
 
   // Letters arranged in a grid - now using difficulty-based sets
   const letters: readonly string[] = LETTER_SETS[difficulty];
 
-  // WebSocket connection cleanup
-  useEffect(() => {
-    return () => {
-      if (wsRef.current) {
-        wsRef.current.close();
-      }
-    };
-  }, []);
-
-  const sendWebSocketMessage = useCallback(
+  const handleWebSocketMessage = useCallback(
     (message: WebSocketMessage): void => {
-      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-        wsRef.current.send(JSON.stringify(message));
+      switch (message.type) {
+        case 'ROOM_CREATED':
+          setRoomCode(message.roomCode);
+          setGameState('lobby');
+          setIsHost(true);
+          break;
+
+        case 'ROOM_JOINED':
+          setRoomCode(message.roomCode);
+          setGameState('lobby');
+          setPlayers(message.players);
+          setConnectedPlayers(message.connectedPlayers);
+          break;
+
+        case 'PLAYER_JOINED':
+          setPlayers(message.players);
+          setConnectedPlayers(message.connectedPlayers);
+          break;
+
+        case 'PLAYER_LEFT':
+          setPlayers(message.players);
+          setConnectedPlayers(message.connectedPlayers);
+          break;
+
+        case 'GAME_STARTED':
+          setGameState('playing');
+          setPlayers(message.gameState.players);
+          setActivePlayers(message.gameState.activePlayers);
+          setCurrentPlayerIndex(message.gameState.currentPlayerIndex);
+          setCurrentCategory(message.gameState.currentCategory);
+          setUsedLetters(new Set(message.gameState.usedLetters));
+          setRoundWins(message.gameState.roundWins);
+          setRoundNumber(message.gameState.roundNumber);
+          setTimeLeft(message.gameState.timeLeft);
+          setIsTimerRunning(message.gameState.isTimerRunning);
+          setRoundActive(message.gameState.roundActive);
+          setDifficulty(message.gameState.difficulty || 'easy');
+          setSelectedLetter(null);
+          break;
+
+        case 'GAME_STATE_UPDATE':
+          setActivePlayers(message.gameState.activePlayers);
+          setCurrentPlayerIndex(message.gameState.currentPlayerIndex);
+          setUsedLetters(new Set(message.gameState.usedLetters));
+          setTimeLeft(message.gameState.timeLeft);
+          setIsTimerRunning(message.gameState.isTimerRunning);
+          setSelectedLetter(null);
+          break;
+
+        case 'TIMER_UPDATE':
+          setTimeLeft(message.timeLeft);
+          break;
+
+        case 'ROUND_END':
+          if (message.gameState) {
+            console.log(`[DEBUG] Updating game state from ROUND_END`);
+            console.log(
+              `[DEBUG] New category: ${message.gameState.currentCategory}`
+            );
+            console.log(
+              `[DEBUG] Timer: ${message.gameState.timeLeft}s, running: ${message.gameState.isTimerRunning}`
+            );
+            console.log(
+              `[DEBUG] Round active: ${message.gameState.roundActive}`
+            );
+
+            setActivePlayers(message.gameState.activePlayers);
+            setCurrentPlayerIndex(message.gameState.currentPlayerIndex);
+            setUsedLetters(new Set(message.gameState.usedLetters));
+            setCurrentCategory(message.gameState.currentCategory);
+            setTimeLeft(message.gameState.timeLeft);
+            setIsTimerRunning(message.gameState.isTimerRunning);
+            setRoundActive(message.gameState.roundActive);
+          } else {
+            console.log(`[DEBUG] No gameState in ROUND_END message!`);
+          }
+
+          setRoundWins(message.roundWins);
+          setRoundNumber(message.roundNumber);
+          setSelectedLetter(null);
+          break;
+
+        case 'GAME_END':
+          setGameState('gameOver');
+          setRoundWins(message.roundWins);
+          break;
+
+        case 'ERROR':
+          alert(message.message);
+          break;
       }
     },
     []
   );
 
-  const connectWebSocket = (): void => {
-    // Replace with your WebSocket server URL
-    const wsUrl = GAME_CONSTANTS.WS_URL;
-    wsRef.current = new WebSocket(wsUrl);
-
-    wsRef.current.onopen = () => {
-      setConnectionStatus('connected');
-    };
-
-    wsRef.current.onmessage = (event: MessageEvent) => {
-      const message: WebSocketMessage = JSON.parse(event.data);
-      handleWebSocketMessage(message);
-    };
-
-    wsRef.current.onclose = () => {
-      setConnectionStatus('disconnected');
-      // Attempt to reconnect after 3 seconds
-      setTimeout(() => {
-        if (roomCode) {
-          connectWebSocket();
-          // Rejoin room after reconnection
-          setTimeout(() => {
-            if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-              wsRef.current.send(
-                JSON.stringify({
-                  type: 'JOIN_ROOM',
-                  roomCode,
-                  playerName,
-                })
-              );
-            }
-          }, 100);
-        }
-      }, 3000);
-    };
-
-    wsRef.current.onerror = () => {
-      setConnectionStatus('error');
-    };
-  };
-
-  const handleWebSocketMessage = (message: WebSocketMessage): void => {
-    switch (message.type) {
-      case 'ROOM_CREATED':
-        setRoomCode(message.roomCode);
-        setGameState('lobby');
-        setIsHost(true);
-        break;
-
-      case 'ROOM_JOINED':
-        setRoomCode(message.roomCode);
-        setGameState('lobby');
-        setPlayers(message.players);
-        setConnectedPlayers(message.connectedPlayers);
-        break;
-
-      case 'PLAYER_JOINED':
-        setPlayers(message.players);
-        setConnectedPlayers(message.connectedPlayers);
-        break;
-
-      case 'PLAYER_LEFT':
-        setPlayers(message.players);
-        setConnectedPlayers(message.connectedPlayers);
-        break;
-
-      case 'GAME_STARTED':
-        setGameState('playing');
-        setPlayers(message.gameState.players);
-        setActivePlayers(message.gameState.activePlayers);
-        setCurrentPlayerIndex(message.gameState.currentPlayerIndex);
-        setCurrentCategory(message.gameState.currentCategory);
-        setUsedLetters(new Set(message.gameState.usedLetters));
-        setRoundWins(message.gameState.roundWins);
-        setRoundNumber(message.gameState.roundNumber);
-        setTimeLeft(message.gameState.timeLeft);
-        setIsTimerRunning(message.gameState.isTimerRunning);
-        setRoundActive(message.gameState.roundActive);
-        setDifficulty(message.gameState.difficulty || 'easy');
-        setSelectedLetter(null);
-        break;
-
-      case 'GAME_STATE_UPDATE':
-        setActivePlayers(message.gameState.activePlayers);
-        setCurrentPlayerIndex(message.gameState.currentPlayerIndex);
-        setUsedLetters(new Set(message.gameState.usedLetters));
-        setTimeLeft(message.gameState.timeLeft); // Use server timer value
-        setIsTimerRunning(message.gameState.isTimerRunning);
-        setSelectedLetter(null);
-        break;
-
-      case 'TIMER_UPDATE':
-        // Always update timer from server - no conditions needed
-        setTimeLeft(message.timeLeft);
-        break;
-
-      case 'ROUND_END':
-        // Update all game state for new round
-        if (message.gameState) {
-          console.log(`[DEBUG] Updating game state from ROUND_END`);
-          console.log(
-            `[DEBUG] New category: ${message.gameState.currentCategory}`
-          );
-          console.log(
-            `[DEBUG] Timer: ${message.gameState.timeLeft}s, running: ${message.gameState.isTimerRunning}`
-          );
-          console.log(`[DEBUG] Round active: ${message.gameState.roundActive}`);
-
-          setActivePlayers(message.gameState.activePlayers);
-          setCurrentPlayerIndex(message.gameState.currentPlayerIndex);
-          setUsedLetters(new Set(message.gameState.usedLetters));
-          setCurrentCategory(message.gameState.currentCategory);
-          setTimeLeft(message.gameState.timeLeft);
-          setIsTimerRunning(message.gameState.isTimerRunning);
-          setRoundActive(message.gameState.roundActive); // Use server value, don't hardcode false!
-        } else {
-          console.log(`[DEBUG] No gameState in ROUND_END message!`);
-        }
-
-        setRoundWins(message.roundWins);
-        setRoundNumber(message.roundNumber);
-        setSelectedLetter(null);
-        break;
-
-      case 'GAME_END':
-        setGameState('gameOver');
-        setRoundWins(message.roundWins);
-        break;
-
-      case 'ERROR':
-        alert(message.message);
-        break;
-    }
-  };
+  const { connectionStatus, sendMessage, connect } = useWebSocket({
+    roomCode,
+    playerName,
+    onMessage: handleWebSocketMessage,
+  });
 
   const createRoom = (): void => {
     if (!playerName.trim()) return;
-    connectWebSocket();
+    connect();
     setTimeout(() => {
-      sendWebSocketMessage({
+      sendMessage({
         type: 'CREATE_ROOM',
         playerName: playerName.trim(),
       });
@@ -270,9 +207,9 @@ const KiaTereGame: React.FC = () => {
 
   const joinRoom = (): void => {
     if (!playerName.trim() || !joinCode.trim()) return;
-    connectWebSocket();
+    connect();
     setTimeout(() => {
-      sendWebSocketMessage({
+      sendMessage({
         type: 'JOIN_ROOM',
         roomCode: joinCode.trim().toUpperCase(),
         playerName: playerName.trim(),
@@ -282,7 +219,7 @@ const KiaTereGame: React.FC = () => {
 
   const startGame = (): void => {
     if (!isHost) return;
-    sendWebSocketMessage({
+    sendMessage({
       type: 'START_GAME',
       difficulty,
     });
@@ -299,7 +236,7 @@ const KiaTereGame: React.FC = () => {
 
   const startTurn = (): void => {
     if (activePlayers[currentPlayerIndex] !== playerName) return;
-    sendWebSocketMessage({
+    sendMessage({
       type: 'START_TURN',
     });
   };
@@ -307,7 +244,7 @@ const KiaTereGame: React.FC = () => {
   const endTurn = (): void => {
     if (!selectedLetter || activePlayers[currentPlayerIndex] !== playerName)
       return;
-    sendWebSocketMessage({
+    sendMessage({
       type: 'END_TURN',
       selectedLetter,
     });
@@ -330,9 +267,6 @@ const KiaTereGame: React.FC = () => {
     setActivePlayers([]);
     setRoundNumber(1);
     setDifficulty('easy');
-    if (wsRef.current) {
-      wsRef.current.close();
-    }
   };
 
   const copyRoomCode = async (): Promise<void> => {
