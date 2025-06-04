@@ -11,6 +11,7 @@ import {
   Copy,
   Check,
 } from 'lucide-react';
+import { GAME_CONSTANTS } from '../constants';
 
 // Types
 interface WebSocketMessage {
@@ -123,7 +124,7 @@ const KiaTereGame: React.FC = () => {
 
   const connectWebSocket = (): void => {
     // Replace with your WebSocket server URL
-    const wsUrl = 'ws://localhost:9191';
+    const wsUrl = GAME_CONSTANTS.WS_URL;
     wsRef.current = new WebSocket(wsUrl);
 
     wsRef.current.onopen = () => {
