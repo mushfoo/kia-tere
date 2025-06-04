@@ -113,7 +113,7 @@ jobs:
         working-directory: ./server
         run: |
           echo "Deploying server to Railway..."
-          railway up --service ${{ secrets.RAILWAY_SERVICE_ID }} --detach
+          railway up --service ${{ secrets.RAILWAY_SERVICE_ID }}
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
 
@@ -165,10 +165,8 @@ jobs:
       - name: Deploy to Vercel
         working-directory: ./client
         run: |
-          # Set up Vercel project
           vercel link --yes --token ${{ secrets.VERCEL_TOKEN }}
 
-          # Deploy the built files
           vercel deploy --prod --prebuilt --token ${{ secrets.VERCEL_TOKEN }}
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
