@@ -91,20 +91,11 @@ jobs:
         with:
           clean: true
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "18"
-
-      - name: Install Railway CLI
-        run: npm install -g @railway/cli
-
       - name: Deploy to Railway
         id: deploy
         run: |
           cd server
-          railway login --browserless
-          railway up --detach --service=${{ env.SVC_ID }}
+          railway up --service=${{ env.SVC_ID }}
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
           SVC_ID: ${{ vars.SVC_ID }}
@@ -132,7 +123,7 @@ jobs:
       - name: Deploy to Vercel
         run: |
           cd client
-          npx vercel deploy --prod --token ${{ secrets.VERCEL_TOKEN }}
+          npx vercel deploy --prod --token ${{ secrets.VERCEL_TOKEN }} --yes
         env:
           REACT_APP_WS_URL: ${{ vars.REACT_APP_WS_URL }}
 
