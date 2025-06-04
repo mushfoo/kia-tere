@@ -121,9 +121,8 @@ jobs:
 
       - name: Deploy to Vercel
         run: |
-          cd client
-          npx vercel link --project ${{ vars.VERCEL_PROJECT_ID}} --token ${{ secrets.VERCEL_TOKEN }} --yes
-          npx vercel deploy --prod --token ${{ secrets.VERCEL_TOKEN }} --yes
+          npx vercel link --project ${{ vars.VERCEL_PROJECT_ID}} --token ${{ secrets.VERCEL_TOKEN }} --yes client
+          npx vercel deploy --prod --token ${{ secrets.VERCEL_TOKEN }} --yes --cwd client
         env:
           REACT_APP_WS_URL: ${{ vars.REACT_APP_WS_URL }}
 
