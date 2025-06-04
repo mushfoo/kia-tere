@@ -15,8 +15,14 @@ export class WebSocketServer {
     this.port = port;
     this.gameManager = new GameStateManager();
     this.server = createServer((req, res) => {
+      console.log(`Received request: ${req.method} ${req.url}`);
       if (req.method === 'GET' && req.url === '/health') {
-        res.statusCode = 200;
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(
+          JSON.stringify({
+            data: 'Hello World!',
+          })
+        );
       }
     });
 
