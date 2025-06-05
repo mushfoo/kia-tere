@@ -254,12 +254,49 @@ export class WebSocketServer {
       return;
     }
 
-    this.gameManager.endTurn(ws.roomCode!, message.selectedLetter);
+    const result = this.gameManager.endTurn(
+      ws.roomCode!,
+      message.selectedLetter
+    );
 
-    this.broadcastToRoom(ws.roomCode!, {
-      type: 'GAME_STATE_UPDATE',
-      gameState: room.gameState,
-    });
+    if (!result) return;
+
+    // Handle the result - same logic as handleTimeUp
+    switch (result.type) {
+      case 'continue':
+        this.broadcastToRoom(ws.roomCode!, {
+          type: 'GAME_STATE_UPDATE',
+          gameState: result.room.gameState,
+        });
+        break;
+
+      case 'overtimeStart':
+        this.broadcastToRoom(ws.roomCode!, {
+          type: 'OVERTIME_START',
+          gameState: result.room.gameState,
+          overtimeLevel: result.room.gameState.overtimeLevel,
+          answersRequired: result.room.gameState.answersRequired,
+          newCategory: result.room.gameState.currentCategory,
+        });
+        break;
+
+      case 'roundEnd':
+        this.broadcastToRoom(ws.roomCode!, {
+          type: 'ROUND_END',
+          gameState: result.room.gameState,
+          roundWins: result.room.gameState.roundWins,
+          roundNumber: result.room.gameState.roundNumber,
+        });
+        break;
+
+      case 'gameEnd':
+        this.broadcastToRoom(ws.roomCode!, {
+          type: 'GAME_END',
+          roundWins: result.room.gameState.roundWins,
+          winner: result.winner,
+        });
+        break;
+    }
   }
 
   private handleTimeUp(ws: ExtendedWebSocket, message: WebSocketMessage): void {

@@ -4,7 +4,7 @@ import {
   EliminationResult,
   Difficulty,
 } from '../types';
-import { GAME_CONSTANTS } from '../constants';
+import { GAME_CONSTANTS, LETTER_SETS } from '../constants';
 import {
   generateRoomCode,
   createInitialGameState,
@@ -146,6 +146,17 @@ export class GameStateManager {
         this.startServerTimer(roomCode);
         break;
 
+      case 'overtimeStart':
+        // Broadcast overtime start with full game state
+        this.broadcastToRoom(roomCode, {
+          type: 'OVERTIME_START',
+          gameState: result.room.gameState,
+          overtimeLevel: result.room.gameState.overtimeLevel,
+          answersRequired: result.room.gameState.answersRequired,
+          newCategory: result.room.gameState.currentCategory,
+        });
+        break;
+
       case 'roundEnd':
         // Broadcast round end with full game state
         this.broadcastToRoom(roomCode, {
@@ -165,6 +176,19 @@ export class GameStateManager {
         this.clearTimer(roomCode);
         break;
     }
+  }
+
+  /**
+   * Checks if overtime should be triggered (all letters used with multiple players remaining).
+   *
+   * @param room - The room to check for overtime conditions
+   * @returns true if overtime should start, false otherwise
+   */
+  private shouldTriggerOvertime(room: Room): boolean {
+    const availableLetters = LETTER_SETS[room.gameState.difficulty];
+    const allLettersUsed =
+      room.gameState.usedLetters.length >= availableLetters.length;
+    return allLettersUsed && room.gameState.activePlayers.length > 1;
   }
 
   // Game state management
@@ -195,7 +219,7 @@ export class GameStateManager {
     return room;
   }
 
-  endTurn(roomCode: string, selectedLetter: string): Room | null {
+  endTurn(roomCode: string, selectedLetter: string): EliminationResult | null {
     const room = this.rooms.get(roomCode);
     if (!room) return null;
 
@@ -204,11 +228,16 @@ export class GameStateManager {
 
     // Only allow if timer is running
     if (!room.gameState.isTimerRunning) {
-      return room;
+      return { type: 'continue', room };
     }
 
     // Add letter to used letters
     room.gameState.usedLetters.push(selectedLetter);
+
+    // Check for overtime condition: all letters used and multiple players remaining
+    if (this.shouldTriggerOvertime(room)) {
+      return this.startOvertimeRound(roomCode);
+    }
 
     // Move to next player
     room.gameState.currentPlayerIndex =
@@ -221,7 +250,7 @@ export class GameStateManager {
     // Start timer for next player
     this.startServerTimer(roomCode);
 
-    return room;
+    return { type: 'continue', room };
   }
 
   eliminatePlayer(roomCode: string): EliminationResult | null {
@@ -246,6 +275,11 @@ export class GameStateManager {
       return this.endRound(roomCode);
     }
 
+    // Check for overtime condition: all letters used and multiple players remaining
+    if (this.shouldTriggerOvertime(room)) {
+      return this.startOvertimeRound(roomCode);
+    }
+
     // Adjust current player index
     if (
       room.gameState.currentPlayerIndex >= room.gameState.activePlayers.length
@@ -268,8 +302,15 @@ export class GameStateManager {
     this.clearTimer(roomCode);
 
     const winner = room.gameState.activePlayers[0];
+
+    // Calculate points based on round type
+    let pointsToAward = 1; // Default for normal rounds
+    if (room.gameState.isOvertimeRound) {
+      pointsToAward = room.gameState.answersRequired; // 2 for first overtime, 3 for second, etc.
+    }
+
     room.gameState.roundWins[winner] =
-      (room.gameState.roundWins[winner] || 0) + 1;
+      (room.gameState.roundWins[winner] || 0) + pointsToAward;
 
     // Check if game is over (first to 3 wins)
     if (room.gameState.roundWins[winner] >= GAME_CONSTANTS.WINS_TO_END_GAME) {
@@ -292,7 +333,45 @@ export class GameStateManager {
     room.gameState.roundActive = true; // Keep this TRUE for new round
     room.gameState.currentCategory = getRandomCategory();
 
+    // Reset overtime state for new round
+    room.gameState.isOvertimeRound = false;
+    room.gameState.overtimeLevel = 0;
+    room.gameState.answersRequired = 1;
+
     return { type: 'roundEnd', room };
+  }
+
+  /**
+   * Starts an overtime round when all letters are used but multiple players remain.
+   * Increments overtime level, resets letters, assigns new category, and increases answer requirements.
+   *
+   * @param roomCode - The room code where overtime should start
+   * @returns EliminationResult with type 'overtimeStart' and updated room state, or null if room not found
+   */
+  startOvertimeRound(roomCode: string): EliminationResult | null {
+    const room = this.rooms.get(roomCode);
+    if (!room) return null;
+
+    // Clear any existing timer
+    this.clearTimer(roomCode);
+
+    // Increment overtime level and set answers required
+    room.gameState.overtimeLevel++;
+    room.gameState.answersRequired = room.gameState.overtimeLevel + 1; // 2 for first overtime, 3 for second, etc.
+    room.gameState.isOvertimeRound = true;
+
+    // Reset letters for overtime round
+    room.gameState.usedLetters = [];
+
+    // Get new category for overtime round
+    room.gameState.currentCategory = getRandomCategory();
+
+    // Reset timer and start with first player
+    room.gameState.currentPlayerIndex = 0;
+    room.gameState.timeLeft = GAME_CONSTANTS.TURN_TIME;
+    room.gameState.isTimerRunning = false; // Player needs to start turn
+
+    return { type: 'overtimeStart', room };
   }
 
   // Cleanup old rooms

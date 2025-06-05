@@ -88,6 +88,9 @@ const KiaTereGame: React.FC = () => {
   const [copySuccess, setCopySuccess] = useState<boolean>(false);
   const [difficulty, setDifficulty] = useState<Difficulty>('easy');
   const [isCreatingRoom, setIsCreatingRoom] = useState<boolean>(false);
+  const [isOvertimeRound, setIsOvertimeRound] = useState<boolean>(false);
+  const [overtimeLevel, setOvertimeLevel] = useState<number>(0);
+  const [answersRequired, setAnswersRequired] = useState<number>(1);
 
   // Letters arranged in a grid - now using difficulty-based sets
   const letters: readonly string[] = LETTER_SETS[difficulty];
@@ -134,6 +137,9 @@ const KiaTereGame: React.FC = () => {
           setIsTimerRunning(message.gameState.isTimerRunning);
           setRoundActive(message.gameState.roundActive);
           setDifficulty(message.gameState.difficulty || 'easy');
+          setIsOvertimeRound(message.gameState.isOvertimeRound || false);
+          setOvertimeLevel(message.gameState.overtimeLevel || 0);
+          setAnswersRequired(message.gameState.answersRequired || 1);
           setSelectedLetter(null);
           break;
 
@@ -143,11 +149,30 @@ const KiaTereGame: React.FC = () => {
           setUsedLetters(new Set(message.gameState.usedLetters));
           setTimeLeft(message.gameState.timeLeft);
           setIsTimerRunning(message.gameState.isTimerRunning);
+          setIsOvertimeRound(message.gameState.isOvertimeRound || false);
+          setOvertimeLevel(message.gameState.overtimeLevel || 0);
+          setAnswersRequired(message.gameState.answersRequired || 1);
           setSelectedLetter(null);
           break;
 
         case 'TIMER_UPDATE':
           setTimeLeft(message.timeLeft);
+          break;
+
+        case 'OVERTIME_START':
+          if (message.gameState) {
+            setActivePlayers(message.gameState.activePlayers);
+            setCurrentPlayerIndex(message.gameState.currentPlayerIndex);
+            setUsedLetters(new Set(message.gameState.usedLetters));
+            setCurrentCategory(message.gameState.currentCategory);
+            setTimeLeft(message.gameState.timeLeft);
+            setIsTimerRunning(message.gameState.isTimerRunning);
+            setRoundActive(message.gameState.roundActive);
+            setIsOvertimeRound(message.gameState.isOvertimeRound);
+            setOvertimeLevel(message.gameState.overtimeLevel);
+            setAnswersRequired(message.gameState.answersRequired);
+          }
+          setSelectedLetter(null);
           break;
 
         case 'ROUND_END':
@@ -159,6 +184,9 @@ const KiaTereGame: React.FC = () => {
             setTimeLeft(message.gameState.timeLeft);
             setIsTimerRunning(message.gameState.isTimerRunning);
             setRoundActive(message.gameState.roundActive);
+            setIsOvertimeRound(message.gameState.isOvertimeRound || false);
+            setOvertimeLevel(message.gameState.overtimeLevel || 0);
+            setAnswersRequired(message.gameState.answersRequired || 1);
           }
 
           setRoundWins(message.roundWins);
@@ -283,6 +311,9 @@ const KiaTereGame: React.FC = () => {
     setActivePlayers([]);
     setRoundNumber(1);
     setDifficulty('easy');
+    setIsOvertimeRound(false);
+    setOvertimeLevel(0);
+    setAnswersRequired(1);
   };
 
   const copyRoomCode = async (): Promise<void> => {
@@ -629,11 +660,34 @@ const KiaTereGame: React.FC = () => {
         <div className="bg-white rounded-2xl shadow-lg border p-8">
           {/* Category and Current Player */}
           <div className="text-center mb-8">
-            <div className="bg-cyan-50 rounded-xl p-4 mb-4 border">
+            <div
+              className={`rounded-xl p-4 mb-4 border ${
+                isOvertimeRound
+                  ? 'bg-amber-50 border-amber-200'
+                  : 'bg-cyan-50 border-cyan-200'
+              }`}
+            >
+              {isOvertimeRound && (
+                <div className="mb-3 p-2 bg-amber-100 rounded-lg border border-amber-300">
+                  <h3 className="text-lg font-bold text-amber-800 mb-1">
+                    🔥 OVERTIME ROUND {overtimeLevel}
+                  </h3>
+                  <p className="text-sm text-amber-700">
+                    Name <span className="font-bold">{answersRequired}</span>{' '}
+                    different answers using different letters!
+                  </p>
+                </div>
+              )}
               <h2 className="text-xl font-bold text-slate-800 mb-2">
                 Category
               </h2>
-              <p className="text-2xl font-bold text-cyan-600 bg-cyan-100 px-4 py-2 rounded-lg inline-block">
+              <p
+                className={`text-2xl font-bold px-4 py-2 rounded-lg inline-block ${
+                  isOvertimeRound
+                    ? 'text-amber-600 bg-amber-100'
+                    : 'text-cyan-600 bg-cyan-100'
+                }`}
+              >
                 {currentCategory}
               </p>
               <div className="mt-2 text-sm text-slate-600">
@@ -647,6 +701,11 @@ const KiaTereGame: React.FC = () => {
                 >
                   {difficulty.toUpperCase()} ({letters.length} letters)
                 </span>
+                {isOvertimeRound && (
+                  <span className="ml-1 px-2 py-1 rounded text-xs font-semibold bg-amber-100 text-amber-800">
+                    OVERTIME: {answersRequired} ANSWERS
+                  </span>
+                )}
               </div>
             </div>
 
