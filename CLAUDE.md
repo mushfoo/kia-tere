@@ -83,3 +83,6 @@ npm run format:fix # Fix Prettier formatting
 - Game timing, categories, and letter sets defined in `client/src/constants/index.ts`
 - Server constants in `server/src/constants/game.ts`
 - Default WebSocket port: 9191
+
+### Rules for Claude Code
+- Remember to include rules from all CLAUDE.md files
