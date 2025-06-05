@@ -5,6 +5,13 @@ on:
     branches: [main]
   push:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to deploy to staging'
+        required: true
+        default: 'main'
+        type: string
 
 jobs:
   client:
@@ -83,7 +90,7 @@ jobs:
           CI: true
 
   deploy-staging:
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
     needs: [client, server]
     runs-on: self-hosted
     environment: staging
@@ -96,6 +103,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.inputs.branch || github.ref }}
           clean: true
 
       - name: Setup Node.js
