@@ -105,6 +105,9 @@ const KiaTereGame: React.FC = () => {
           break;
 
         case 'ROOM_JOINED':
+          console.log(
+            `Received ROOM_JOINED message for room: ${message.roomCode}`
+          );
           setRoomCode(message.roomCode);
           setGameState('lobby');
           setPlayers(message.players);
@@ -209,6 +212,35 @@ const KiaTereGame: React.FC = () => {
     }
   }, [connectionStatus, isCreatingRoom, sendMessage, playerName]);
 
+  // Send JOIN_ROOM message when connection is established and we have a join code
+  useEffect(() => {
+    console.log(
+      `JOIN useEffect: connected=${connectionStatus === 'connected'}, joinCode=${joinCode}, roomCode=${roomCode}, isCreatingRoom=${isCreatingRoom}`
+    );
+    if (
+      connectionStatus === 'connected' &&
+      joinCode &&
+      !roomCode &&
+      !isCreatingRoom
+    ) {
+      console.log(
+        `Sending JOIN_ROOM message: ${joinCode} for player: ${playerName.trim()}`
+      );
+      sendMessage({
+        type: 'JOIN_ROOM',
+        roomCode: joinCode,
+        playerName: playerName.trim(),
+      });
+    }
+  }, [
+    connectionStatus,
+    joinCode,
+    roomCode,
+    isCreatingRoom,
+    sendMessage,
+    playerName,
+  ]);
+
   const createRoom = (): void => {
     if (!playerName.trim()) return;
     setIsCreatingRoom(true);
@@ -217,14 +249,10 @@ const KiaTereGame: React.FC = () => {
 
   const joinRoom = (): void => {
     if (!playerName.trim() || !joinCode.trim()) return;
+
+    // Set joining state to trigger useEffect below
+    setJoinCode(joinCode.trim().toUpperCase());
     connect();
-    setTimeout(() => {
-      sendMessage({
-        type: 'JOIN_ROOM',
-        roomCode: joinCode.trim().toUpperCase(),
-        playerName: playerName.trim(),
-      });
-    }, 100);
   };
 
   const startGame = (): void => {
