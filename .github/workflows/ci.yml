@@ -183,17 +183,10 @@ jobs:
             npm install -g @railway/cli
           fi
 
-      - name: Deploy Server to Production
+      - name: Deploy to Railway Production
         run: |
-          echo "Deploying server to Railway production..."
-          railway up --service ${{ secrets.RAILWAY_SERVER_SERVICE_ID }}
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-
-      - name: Deploy Client to Production
-        run: |
-          echo "Deploying client to Railway production..."
-          railway up --service ${{ secrets.RAILWAY_CLIENT_SERVICE_ID }}
+          echo "Deploying combined service to Railway production..."
+          railway up --service ${{ secrets.RAILWAY_PRODUCTION_SERVICE_ID }}
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
 
