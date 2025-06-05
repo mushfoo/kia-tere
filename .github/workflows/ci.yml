@@ -156,6 +156,7 @@ jobs:
           cd e2e
           npm ci
           npx playwright install chromium
+          sudo npx playwright install-deps
 
       - name: Run browser tests
         run: |
