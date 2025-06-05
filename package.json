@@ -12,7 +12,8 @@
     "lint:check": "npm run lint:check --workspace=client && npm run lint:check --workspace=server",
     "format:check": "npm run format:check --workspace=client && npm run format:check --workspace=server",
     "check": "npm run lint:check && npm run format:check",
-    "fix": "npm run fix --workspace=client && npm run fix --workspace=server"
+    "fix": "npm run fix --workspace=client && npm run fix --workspace=server",
+    "start:staging": "node server/dist/server.js"
   },
   "devDependencies": {
     "husky": "^8.0.3",
