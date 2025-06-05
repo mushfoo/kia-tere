@@ -23,7 +23,7 @@ export interface GameState {
   roundActive: boolean;
   roundNumber: number;
   gameStarted: boolean;
-  difficulty: 'easy' | 'hard';
+  difficulty: Difficulty;
 }
 
 export interface WebSocketMessage {

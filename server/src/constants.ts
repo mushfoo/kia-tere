@@ -75,10 +75,10 @@ export const CATEGORIES = [
 ] as const;
 
 export const GAME_CONSTANTS = {
-  ROOM_TIMEOUT: 30 * 60 * 1000, // 30 minutes
-  EMPTY_ROOM_TIMEOUT: 5 * 60 * 1000, // 5 minutes
   TURN_TIME: 10, // seconds
   ROUND_END_DELAY: 3000, // milliseconds
-  WINS_TO_END_GAME: 3,
   ROOM_CODE_LENGTH: 6,
+  ROOM_TIMEOUT: 30 * 60 * 1000, // 30 minutes
+  EMPTY_ROOM_TIMEOUT: 5 * 60 * 1000, // 5 minutes
+  WINS_TO_END_GAME: 3,
 } as const;
