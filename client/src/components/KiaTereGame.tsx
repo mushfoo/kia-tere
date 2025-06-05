@@ -437,8 +437,14 @@ const KiaTereGame: React.FC = () => {
               <div
                 key={index}
                 className="flex items-center justify-between p-3 bg-slate-50 rounded-lg"
+                data-testid={`player-${player}`}
               >
-                <span className="font-medium">{player}</span>
+                <span
+                  className="font-medium"
+                  data-testid={`player-name-${player}`}
+                >
+                  {player}
+                </span>
                 <div className="flex items-center gap-2">
                   {player === playerName && (
                     <span className="text-xs bg-teal-100 text-teal-800 px-2 py-1 rounded">
