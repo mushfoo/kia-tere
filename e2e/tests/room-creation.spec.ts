@@ -29,8 +29,8 @@ test.describe('Room Creation', () => {
     );
     await expect(roomCodeElement).toBeVisible();
     
-    // Verify player is listed as host (may just show the name or have different formatting)
-    await expect(page.locator('text=TestPlayer')).toBeVisible();
+    // Verify player is listed as host  
+    await expect(page.locator('text=TestPlayer (Host)')).toBeVisible();
     
     // Verify start game button is visible for host
     await expect(page.locator('button', { hasText: 'Start Game' })).toBeVisible();

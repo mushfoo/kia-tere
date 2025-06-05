@@ -22,7 +22,7 @@ Call log:
 
 ```yaml
 - heading "Game Lobby" [level=1]
-- text: 9PID8H
+- text: XATO73
 - button "Copy room code":
   - img
 - img
@@ -73,7 +73,7 @@ Call log:
   29 |     );
   30 |     await expect(roomCodeElement).toBeVisible();
   31 |     
-  32 |     // Verify player is listed as host
+  32 |     // Verify player is listed as host  
 > 33 |     await expect(page.locator('text=TestPlayer (Host)')).toBeVisible();
      |                                                          ^ Error: Timed out 5000ms waiting for expect(locator).toBeVisible()
   34 |     
@@ -81,38 +81,23 @@ Call log:
   36 |     await expect(page.locator('button', { hasText: 'Start Game' })).toBeVisible();
   37 |   });
   38 |
-  39 |   test('should handle WebSocket connection errors gracefully', async ({ page }) => {
+  39 |   test('should show main menu with required elements', async ({ page }) => {
   40 |     // Navigate to the game
   41 |     await page.goto('/');
   42 |     
-  43 |     // Fill in player name
-  44 |     await page.locator('input[placeholder="Enter your name"]').fill('ErrorTestPlayer');
-  45 |     
-  46 |     // Mock a WebSocket failure scenario by intercepting WebSocket connections
-  47 |     await page.evaluate(() => {
-  48 |       // Override WebSocket to simulate connection failure
-  49 |       const originalWebSocket = window.WebSocket;
-  50 |       window.WebSocket = class extends originalWebSocket {
-  51 |         constructor(url: string) {
-  52 |           super(url);
-  53 |           // Simulate immediate connection failure
-  54 |           setTimeout(() => {
-  55 |             this.dispatchEvent(new Event('error'));
-  56 |             this.dispatchEvent(new CloseEvent('close', { code: 1006 }));
-  57 |           }, 100);
-  58 |         }
-  59 |       };
-  60 |     });
-  61 |     
-  62 |     // Click create room button
-  63 |     await page.locator('button', { hasText: 'Create Room' }).click();
-  64 |     
-  65 |     // Verify we don't navigate to lobby on WebSocket failure
-  66 |     // Should stay on main menu
-  67 |     await expect(page.locator('h1')).toContainText('Kia Tere');
-  68 |     
-  69 |     // Should not see lobby elements (no room code should appear)
-  70 |     await expect(page.locator('text=/Room Code|[A-Z0-9]{6}/')).not.toBeVisible({ timeout: 3000 });
-  71 |   });
-  72 | });
+  43 |     // Verify main menu elements are present
+  44 |     await expect(page.locator('h1')).toContainText('Kia Tere');
+  45 |     await expect(page.locator('input[placeholder="Enter your name"]')).toBeVisible();
+  46 |     await expect(page.locator('button', { hasText: 'Create Room' })).toBeVisible();
+  47 |     await expect(page.locator('button', { hasText: 'Join Room' })).toBeVisible();
+  48 |     
+  49 |     // Verify create room button is initially disabled when no name is entered
+  50 |     const createButton = page.locator('button', { hasText: 'Create Room' });
+  51 |     await expect(createButton).toBeDisabled();
+  52 |     
+  53 |     // Fill in name and verify button becomes enabled
+  54 |     await page.locator('input[placeholder="Enter your name"]').fill('TestUser');
+  55 |     await expect(createButton).toBeEnabled();
+  56 |   });
+  57 | });
 ```
