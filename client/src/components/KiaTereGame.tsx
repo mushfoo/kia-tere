@@ -71,7 +71,7 @@ const KiaTereGame: React.FC = () => {
   const [gameState, setGameState] = useState<GamePhase>('menu');
   const [isHost, setIsHost] = useState<boolean>(false);
   const [roomCode, setRoomCode] = useState<string>('');
-  const [joinCode, setJoinCode] = useState<string>('');
+  const [roomCodeInput, setRoomCodeInput] = useState<string>('');
   const [playerName, setPlayerName] = useState<string>('');
   const [players, setPlayers] = useState<string[]>([]);
   const [connectedPlayers, setConnectedPlayers] = useState<string[]>([]);
@@ -105,9 +105,6 @@ const KiaTereGame: React.FC = () => {
           break;
 
         case 'ROOM_JOINED':
-          console.log(
-            `Received ROOM_JOINED message for room: ${message.roomCode}`
-          );
           setRoomCode(message.roomCode);
           setGameState('lobby');
           setPlayers(message.players);
@@ -155,17 +152,6 @@ const KiaTereGame: React.FC = () => {
 
         case 'ROUND_END':
           if (message.gameState) {
-            console.log(`[DEBUG] Updating game state from ROUND_END`);
-            console.log(
-              `[DEBUG] New category: ${message.gameState.currentCategory}`
-            );
-            console.log(
-              `[DEBUG] Timer: ${message.gameState.timeLeft}s, running: ${message.gameState.isTimerRunning}`
-            );
-            console.log(
-              `[DEBUG] Round active: ${message.gameState.roundActive}`
-            );
-
             setActivePlayers(message.gameState.activePlayers);
             setCurrentPlayerIndex(message.gameState.currentPlayerIndex);
             setUsedLetters(new Set(message.gameState.usedLetters));
@@ -173,8 +159,6 @@ const KiaTereGame: React.FC = () => {
             setTimeLeft(message.gameState.timeLeft);
             setIsTimerRunning(message.gameState.isTimerRunning);
             setRoundActive(message.gameState.roundActive);
-          } else {
-            console.log(`[DEBUG] No gameState in ROUND_END message!`);
           }
 
           setRoundWins(message.roundWins);
@@ -214,27 +198,21 @@ const KiaTereGame: React.FC = () => {
 
   // Send JOIN_ROOM message when connection is established and we have a join code
   useEffect(() => {
-    console.log(
-      `JOIN useEffect: connected=${connectionStatus === 'connected'}, joinCode=${joinCode}, roomCode=${roomCode}, isCreatingRoom=${isCreatingRoom}`
-    );
     if (
       connectionStatus === 'connected' &&
-      joinCode &&
+      roomCodeInput &&
       !roomCode &&
       !isCreatingRoom
     ) {
-      console.log(
-        `Sending JOIN_ROOM message: ${joinCode} for player: ${playerName.trim()}`
-      );
       sendMessage({
         type: 'JOIN_ROOM',
-        roomCode: joinCode,
+        roomCode: roomCodeInput,
         playerName: playerName.trim(),
       });
     }
   }, [
     connectionStatus,
-    joinCode,
+    roomCodeInput,
     roomCode,
     isCreatingRoom,
     sendMessage,
@@ -248,10 +226,10 @@ const KiaTereGame: React.FC = () => {
   };
 
   const joinRoom = (): void => {
-    if (!playerName.trim() || !joinCode.trim()) return;
+    if (!playerName.trim() || !roomCodeInput.trim()) return;
 
     // Set joining state to trigger useEffect below
-    setJoinCode(joinCode.trim().toUpperCase());
+    setRoomCodeInput(roomCodeInput.trim().toUpperCase());
     connect();
   };
 
@@ -292,7 +270,7 @@ const KiaTereGame: React.FC = () => {
     setGameState('menu');
     setIsHost(false);
     setRoomCode('');
-    setJoinCode('');
+    setRoomCodeInput('');
     setPlayers([]);
     setConnectedPlayers([]);
     setCurrentPlayerIndex(0);
@@ -374,8 +352,8 @@ const KiaTereGame: React.FC = () => {
               </label>
               <input
                 type="text"
-                value={joinCode}
-                onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                value={roomCodeInput}
+                onChange={(e) => setRoomCodeInput(e.target.value.toUpperCase())}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
                 placeholder="Enter room code"
                 maxLength={6}
@@ -386,7 +364,7 @@ const KiaTereGame: React.FC = () => {
               onClick={joinRoom}
               disabled={
                 !playerName.trim() ||
-                !joinCode.trim() ||
+                !roomCodeInput.trim() ||
                 connectionStatus === 'connecting'
               }
               className="w-full py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors"

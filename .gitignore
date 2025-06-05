@@ -77,3 +77,7 @@ jspm_packages/
 .serverless
 .vercel
 .claude
+
+# Playwright test reports
+e2e/playwright-report/
+e2e/test-results/
