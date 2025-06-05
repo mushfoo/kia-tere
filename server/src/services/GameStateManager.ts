@@ -178,6 +178,19 @@ export class GameStateManager {
     }
   }
 
+  /**
+   * Checks if overtime should be triggered (all letters used with multiple players remaining).
+   *
+   * @param room - The room to check for overtime conditions
+   * @returns true if overtime should start, false otherwise
+   */
+  private shouldTriggerOvertime(room: Room): boolean {
+    const availableLetters = LETTER_SETS[room.gameState.difficulty];
+    const allLettersUsed =
+      room.gameState.usedLetters.length >= availableLetters.length;
+    return allLettersUsed && room.gameState.activePlayers.length > 1;
+  }
+
   // Game state management
   startGame(roomCode: string, difficulty: Difficulty = 'easy'): Room | null {
     const room = this.rooms.get(roomCode);
@@ -222,11 +235,7 @@ export class GameStateManager {
     room.gameState.usedLetters.push(selectedLetter);
 
     // Check for overtime condition: all letters used and multiple players remaining
-    const availableLetters = LETTER_SETS[room.gameState.difficulty];
-    const allLettersUsed =
-      room.gameState.usedLetters.length >= availableLetters.length;
-
-    if (allLettersUsed && room.gameState.activePlayers.length > 1) {
+    if (this.shouldTriggerOvertime(room)) {
       return this.startOvertimeRound(roomCode);
     }
 
@@ -267,11 +276,7 @@ export class GameStateManager {
     }
 
     // Check for overtime condition: all letters used and multiple players remaining
-    const availableLetters = LETTER_SETS[room.gameState.difficulty];
-    const allLettersUsed =
-      room.gameState.usedLetters.length >= availableLetters.length;
-
-    if (allLettersUsed && room.gameState.activePlayers.length > 1) {
+    if (this.shouldTriggerOvertime(room)) {
       return this.startOvertimeRound(roomCode);
     }
 
@@ -336,6 +341,13 @@ export class GameStateManager {
     return { type: 'roundEnd', room };
   }
 
+  /**
+   * Starts an overtime round when all letters are used but multiple players remain.
+   * Increments overtime level, resets letters, assigns new category, and increases answer requirements.
+   *
+   * @param roomCode - The room code where overtime should start
+   * @returns EliminationResult with type 'overtimeStart' and updated room state, or null if room not found
+   */
   startOvertimeRound(roomCode: string): EliminationResult | null {
     const room = this.rooms.get(roomCode);
     if (!room) return null;
