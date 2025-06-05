@@ -83,6 +83,7 @@ jobs:
           CI: true
 
   deploy-staging:
+    if: github.ref == 'refs/heads/main'
     needs: [client, server]
     runs-on: self-hosted
     environment: staging
@@ -116,6 +117,7 @@ jobs:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
 
   browser-tests:
+    if: github.ref == 'refs/heads/main'
     needs: [deploy-staging]
     runs-on: self-hosted
     environment: staging
