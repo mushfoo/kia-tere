@@ -1,0 +1,21 @@
+{
+  "build": {
+    "builder": "NIXPACKS",
+    "nixpacksPlan": {
+      "providers": ["node"],
+      "phases": {
+        "install": {
+          "cmds": [
+            "npm install --legacy-peer-deps",
+            "npm run build --workspace=client",
+            "npm run build --workspace=server"
+          ]
+        }
+      }
+    }
+  },
+  "deploy": {
+    "startCommand": "npm run start:staging",
+    "healthcheckPath": "/health"
+  }
+}

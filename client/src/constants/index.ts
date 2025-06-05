@@ -76,8 +76,26 @@ export const CATEGORIES = [
   'Board Game Mechanics',
 ] as const;
 
+const getWebSocketUrl = (): string => {
+  if (process.env.REACT_APP_WS_URL) {
+    return process.env.REACT_APP_WS_URL;
+  }
+
+  // Auto-detect protocol based on current page
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const host = window.location.hostname;
+
+  // Use localhost for development, current host for production
+  if (host === 'localhost' || host === '127.0.0.1') {
+    return 'ws://localhost:9191';
+  }
+
+  // For combined service deployment, WebSocket is on same host and port
+  return `${protocol}//${window.location.host}`;
+};
+
 export const GAME_CONSTANTS = {
   TURN_TIME: 10, // seconds
   RECONNECT_DELAY: 3000, // milliseconds
-  WS_URL: process.env.REACT_APP_WS_URL || 'ws://localhost:9191',
+  WS_URL: getWebSocketUrl(),
 } as const;

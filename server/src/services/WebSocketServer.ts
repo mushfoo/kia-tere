@@ -4,27 +4,36 @@ import { ExtendedWebSocket, WebSocketMessage } from '../types';
 import { GameStateManager } from './GameStateManager';
 
 export class WebSocketServer {
-  private port: number;
+  private port?: number;
   private gameManager: GameStateManager;
   private server: any;
   private wss: WebSocket.Server;
   private cleanupInterval?: NodeJS.Timeout;
   private roundTimeouts: Map<string, NodeJS.Timeout> = new Map();
+  private useExternalServer: boolean;
 
-  constructor(port: number = 9191) {
+  constructor(port?: number, externalServer?: any) {
     this.port = port;
     this.gameManager = new GameStateManager();
-    this.server = createServer((req, res) => {
-      console.log(`Received request: ${req.method} ${req.url}`);
-      if (req.method === 'GET' && req.url === '/health') {
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(
-          JSON.stringify({
-            data: 'Hello World!',
-          })
-        );
-      }
-    });
+    this.useExternalServer = !!externalServer;
+
+    if (externalServer) {
+      // Use existing HTTP server (for combined service)
+      this.server = externalServer;
+    } else {
+      // Create new HTTP server (for standalone WebSocket server)
+      this.server = createServer((req, res) => {
+        console.log(`Received request: ${req.method} ${req.url}`);
+        if (req.method === 'GET' && req.url === '/health') {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(
+            JSON.stringify({
+              data: 'Hello World!',
+            })
+          );
+        }
+      });
+    }
 
     // Add CORS for production
     if (process.env.NODE_ENV === 'production') {
@@ -401,12 +410,19 @@ export class WebSocketServer {
   }
 
   start(): void {
-    this.server.listen(this.port, () => {
-      console.log(`Kia Tere WebSocket server running on port ${this.port}`);
-      console.log(`WebSocket URL: ws://localhost:${this.port}`);
-
+    if (this.useExternalServer) {
+      // WebSocket server is attached to external HTTP server
+      console.log('WebSocket server attached to existing HTTP server');
       this.startCleanupInterval();
-    });
+    } else {
+      // Start standalone WebSocket server
+      this.server.listen(this.port, () => {
+        console.log(`Kia Tere WebSocket server running on port ${this.port}`);
+        console.log(`WebSocket URL: ws://localhost:${this.port}`);
+
+        this.startCleanupInterval();
+      });
+    }
   }
 
   public close(): void {

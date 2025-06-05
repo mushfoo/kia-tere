@@ -27,10 +27,12 @@ export function useWebSocket({
   );
 
   const connect = useCallback(() => {
+    console.log('Attempting to connect to WebSocket:', GAME_CONSTANTS.WS_URL);
     wsRef.current = new WebSocket(GAME_CONSTANTS.WS_URL);
     setConnectionStatus('connecting');
 
     wsRef.current.onopen = () => {
+      console.log('WebSocket connected successfully');
       setConnectionStatus('connected');
       if (roomCode) {
         if (wsRef.current) {
@@ -50,7 +52,8 @@ export function useWebSocket({
       onMessage(message);
     };
 
-    wsRef.current.onclose = () => {
+    wsRef.current.onclose = (event) => {
+      console.log('WebSocket closed:', event?.code, event?.reason);
       setConnectionStatus('disconnected');
       // Attempt to reconnect after delay
       setTimeout(() => {
@@ -60,7 +63,8 @@ export function useWebSocket({
       }, GAME_CONSTANTS.RECONNECT_DELAY);
     };
 
-    wsRef.current.onerror = () => {
+    wsRef.current.onerror = (error) => {
+      console.error('WebSocket error:', error);
       setConnectionStatus('error');
     };
   }, [roomCode, playerName, onMessage]);

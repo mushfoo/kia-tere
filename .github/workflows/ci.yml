@@ -82,9 +82,75 @@ jobs:
         env:
           CI: true
 
-  deploy-server:
+  deploy-staging:
     if: github.ref == 'refs/heads/main'
     needs: [client, server]
+    runs-on: self-hosted
+    environment: staging
+
+    steps:
+      - name: Cleanup workspace
+        run: |
+          chmod -R 755 $GITHUB_WORKSPACE || true
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          clean: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+
+      - name: Install Railway CLI
+        run: |
+          if ! command -v railway &> /dev/null; then
+            npm install -g @railway/cli
+          fi
+
+      - name: Deploy to Railway Staging
+        run: |
+          echo "Deploying combined service to Railway staging..."
+          railway up --service ${{ secrets.RAILWAY_STAGING_SERVICE_ID }} --config railway.staging.json
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+
+  browser-tests:
+    if: github.ref == 'refs/heads/main'
+    needs: [deploy-staging]
+    runs-on: self-hosted
+    environment: staging
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          clean: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+
+      - name: Wait for staging deployment
+        run: |
+          echo "Waiting for staging deployment to be ready..."
+          sleep 30
+
+      - name: Health check staging
+        run: |
+          echo "Checking staging health..."
+          curl -f ${{ secrets.STAGING_URL }}/health || exit 1
+
+      - name: Placeholder for browser tests
+        run: |
+          echo "Browser tests would run here against ${{ secrets.STAGING_URL }}"
+          echo "TODO: Add Playwright/Cypress tests for WebSocket connectivity"
+
+  deploy-production:
+    if: github.ref == 'refs/heads/main'
+    needs: [browser-tests]
     runs-on: self-hosted
     environment: production
 
@@ -109,43 +175,16 @@ jobs:
             npm install -g @railway/cli
           fi
 
-      - name: Deploy to Railway
+      - name: Deploy Server to Production
         run: |
-          echo "Deploying server to Railway..."
+          echo "Deploying server to Railway production..."
           railway up --service ${{ secrets.RAILWAY_SERVER_SERVICE_ID }}
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
 
-  deploy-client:
-    if: github.ref == 'refs/heads/main'
-    needs: [client, server, deploy-server]
-    runs-on: self-hosted
-    environment: production
-
-    steps:
-      - name: Cleanup workspace
+      - name: Deploy Client to Production
         run: |
-          chmod -R 755 $GITHUB_WORKSPACE || true
-
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          clean: true
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "18"
-
-      - name: Install Railway CLI
-        run: |
-          if ! command -v railway &> /dev/null; then
-            npm install -g @railway/cli
-          fi
-
-      - name: Deploy to Railway
-        run: |
-          echo "Deploying client to Railway..."
+          echo "Deploying client to Railway production..."
           railway up --service ${{ secrets.RAILWAY_CLIENT_SERVICE_ID }}
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
@@ -153,7 +192,7 @@ jobs:
   cleanup:
     name: Cleanup
     runs-on: self-hosted
-    needs: [deploy-server, deploy-client]
+    needs: [deploy-production]
     if: always()
 
     steps:
