@@ -71,7 +71,7 @@ const KiaTereGame: React.FC = () => {
   const [gameState, setGameState] = useState<GamePhase>('menu');
   const [isHost, setIsHost] = useState<boolean>(false);
   const [roomCode, setRoomCode] = useState<string>('');
-  const [joinCode, setJoinCode] = useState<string>('');
+  const [roomCodeInput, setRoomCodeInput] = useState<string>('');
   const [playerName, setPlayerName] = useState<string>('');
   const [players, setPlayers] = useState<string[]>([]);
   const [connectedPlayers, setConnectedPlayers] = useState<string[]>([]);
@@ -152,17 +152,6 @@ const KiaTereGame: React.FC = () => {
 
         case 'ROUND_END':
           if (message.gameState) {
-            console.log(`[DEBUG] Updating game state from ROUND_END`);
-            console.log(
-              `[DEBUG] New category: ${message.gameState.currentCategory}`
-            );
-            console.log(
-              `[DEBUG] Timer: ${message.gameState.timeLeft}s, running: ${message.gameState.isTimerRunning}`
-            );
-            console.log(
-              `[DEBUG] Round active: ${message.gameState.roundActive}`
-            );
-
             setActivePlayers(message.gameState.activePlayers);
             setCurrentPlayerIndex(message.gameState.currentPlayerIndex);
             setUsedLetters(new Set(message.gameState.usedLetters));
@@ -170,8 +159,6 @@ const KiaTereGame: React.FC = () => {
             setTimeLeft(message.gameState.timeLeft);
             setIsTimerRunning(message.gameState.isTimerRunning);
             setRoundActive(message.gameState.roundActive);
-          } else {
-            console.log(`[DEBUG] No gameState in ROUND_END message!`);
           }
 
           setRoundWins(message.roundWins);
@@ -209,6 +196,29 @@ const KiaTereGame: React.FC = () => {
     }
   }, [connectionStatus, isCreatingRoom, sendMessage, playerName]);
 
+  // Send JOIN_ROOM message when connection is established and we have a join code
+  useEffect(() => {
+    if (
+      connectionStatus === 'connected' &&
+      roomCodeInput &&
+      !roomCode &&
+      !isCreatingRoom
+    ) {
+      sendMessage({
+        type: 'JOIN_ROOM',
+        roomCode: roomCodeInput,
+        playerName: playerName.trim(),
+      });
+    }
+  }, [
+    connectionStatus,
+    roomCodeInput,
+    roomCode,
+    isCreatingRoom,
+    sendMessage,
+    playerName,
+  ]);
+
   const createRoom = (): void => {
     if (!playerName.trim()) return;
     setIsCreatingRoom(true);
@@ -216,15 +226,11 @@ const KiaTereGame: React.FC = () => {
   };
 
   const joinRoom = (): void => {
-    if (!playerName.trim() || !joinCode.trim()) return;
+    if (!playerName.trim() || !roomCodeInput.trim()) return;
+
+    // Set joining state to trigger useEffect below
+    setRoomCodeInput(roomCodeInput.trim().toUpperCase());
     connect();
-    setTimeout(() => {
-      sendMessage({
-        type: 'JOIN_ROOM',
-        roomCode: joinCode.trim().toUpperCase(),
-        playerName: playerName.trim(),
-      });
-    }, 100);
   };
 
   const startGame = (): void => {
@@ -264,7 +270,7 @@ const KiaTereGame: React.FC = () => {
     setGameState('menu');
     setIsHost(false);
     setRoomCode('');
-    setJoinCode('');
+    setRoomCodeInput('');
     setPlayers([]);
     setConnectedPlayers([]);
     setCurrentPlayerIndex(0);
@@ -346,8 +352,8 @@ const KiaTereGame: React.FC = () => {
               </label>
               <input
                 type="text"
-                value={joinCode}
-                onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                value={roomCodeInput}
+                onChange={(e) => setRoomCodeInput(e.target.value.toUpperCase())}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
                 placeholder="Enter room code"
                 maxLength={6}
@@ -358,7 +364,7 @@ const KiaTereGame: React.FC = () => {
               onClick={joinRoom}
               disabled={
                 !playerName.trim() ||
-                !joinCode.trim() ||
+                !roomCodeInput.trim() ||
                 connectionStatus === 'connecting'
               }
               className="w-full py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors"

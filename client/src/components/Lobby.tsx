@@ -20,7 +20,12 @@ export const Lobby: React.FC<LobbyProps> = ({
           <h2 className="text-2xl font-bold text-gray-900">Game Lobby</h2>
           <div className="flex items-center space-x-2">
             <span className="text-sm text-gray-500">Room Code:</span>
-            <code className="px-2 py-1 bg-gray-100 rounded">{roomCode}</code>
+            <code
+              className="px-2 py-1 bg-gray-100 rounded"
+              data-testid="room-code"
+            >
+              {roomCode}
+            </code>
             <button
               onClick={onCopyCode}
               className="p-1 hover:bg-gray-100 rounded-full transition-colors"
