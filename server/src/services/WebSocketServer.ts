@@ -134,6 +134,8 @@ export class WebSocketServer {
     this.send(ws, {
       type: 'ROOM_CREATED',
       roomCode: room.roomCode,
+      players: room.players,
+      connectedPlayers: room.connectedPlayers,
     });
 
     console.log(`Room created: ${room.roomCode} by ${message.playerName}`);

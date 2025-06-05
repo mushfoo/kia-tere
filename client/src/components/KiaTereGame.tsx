@@ -100,6 +100,8 @@ const KiaTereGame: React.FC = () => {
           setGameState('lobby');
           setIsHost(true);
           setIsCreatingRoom(false);
+          setPlayers(message.players);
+          setConnectedPlayers(message.connectedPlayers);
           break;
 
         case 'ROOM_JOINED':

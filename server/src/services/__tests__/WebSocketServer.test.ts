@@ -60,6 +60,8 @@ describe('WebSocketServer', () => {
       expect(mockWs.messages).toHaveLength(1);
       expect(mockWs.messages[0].type).toBe('ROOM_CREATED');
       expect(mockWs.messages[0].roomCode).toBeDefined();
+      expect(mockWs.messages[0].players).toEqual(['host']);
+      expect(mockWs.messages[0].connectedPlayers).toEqual(['host']);
       expect(mockWs.roomCode).toBe(mockWs.messages[0].roomCode);
     });
 
