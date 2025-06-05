@@ -53,7 +53,7 @@ export function useWebSocket({
     };
 
     wsRef.current.onclose = (event) => {
-      console.log('WebSocket closed:', event.code, event.reason);
+      console.log('WebSocket closed:', event?.code, event?.reason);
       setConnectionStatus('disconnected');
       // Attempt to reconnect after delay
       setTimeout(() => {
