@@ -120,7 +120,7 @@ jobs:
       - name: Deploy to Railway Staging
         run: |
           echo "Deploying combined service to Railway staging..."
-          railway up --service ${{ secrets.RAILWAY_STAGING_SERVICE_ID }} --config railway.staging.json
+          railway up --service ${{ secrets.RAILWAY_STAGING_SERVICE_ID }}
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
 
