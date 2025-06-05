@@ -19,10 +19,17 @@ test.describe("Basic Functionality", () => {
     console.log(`Successfully created room: ${roomCode}`);
   });
 
-  test("should show connection status", async ({ page }) => {
+  test("should show connection status in lobby", async ({ page }) => {
     await page.goto("/");
     
-    // Check connection status indicators exist
+    // Fill in player name and create room to reach lobby where connection status is shown
+    await page.locator('input[placeholder="Enter your name"]').fill("TestPlayer");
+    await page.locator("button", { hasText: "Create Room" }).click();
+    
+    // Wait for lobby to load
+    await expect(page.locator("text=Game Lobby")).toBeVisible({ timeout: 15000 });
+    
+    // Check connection status indicators exist in lobby
     const connectionIndicators = page.locator("text=/connected|connecting|disconnected/i");
     await expect(connectionIndicators.first()).toBeVisible({ timeout: 10000 });
   });
