@@ -76,8 +76,8 @@ npm run format:fix # Fix Prettier formatting
 
 **Environment Variables:**
 - `REACT_APP_WS_URL` - WebSocket server URL for client (defaults to `ws://localhost:9191`)
-- `NODE_ENV` - Enables CORS restrictions in production
-- `ALLOWED_ORIGINS` - Comma-separated list of allowed origins for production CORS
+- `NODE_ENV` - Enables CORS restrictions when set to `production` or `staging`
+- `ALLOWED_ORIGINS` - Comma-separated list of allowed origins for production/staging CORS
 
 **Constants:**
 - Game timing, categories, and letter sets defined in `client/src/constants/index.ts`
