@@ -35,8 +35,12 @@ export class WebSocketServer {
       });
     }
 
-    // Add CORS for production
-    if (process.env.NODE_ENV === 'production') {
+    // Add CORS for production and staging environments
+    const isSecureEnvironment =
+      process.env.NODE_ENV === 'production' ||
+      process.env.NODE_ENV === 'staging';
+
+    if (isSecureEnvironment) {
       const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [];
       this.wss = new WebSocket.Server({
         server: this.server,

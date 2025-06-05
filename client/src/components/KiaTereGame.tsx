@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   Play,
   RotateCcw,
@@ -87,6 +87,7 @@ const KiaTereGame: React.FC = () => {
   const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
   const [copySuccess, setCopySuccess] = useState<boolean>(false);
   const [difficulty, setDifficulty] = useState<Difficulty>('easy');
+  const [isCreatingRoom, setIsCreatingRoom] = useState<boolean>(false);
 
   // Letters arranged in a grid - now using difficulty-based sets
   const letters: readonly string[] = LETTER_SETS[difficulty];
@@ -98,6 +99,7 @@ const KiaTereGame: React.FC = () => {
           setRoomCode(message.roomCode);
           setGameState('lobby');
           setIsHost(true);
+          setIsCreatingRoom(false);
           break;
 
         case 'ROOM_JOINED':
@@ -194,15 +196,21 @@ const KiaTereGame: React.FC = () => {
     onMessage: handleWebSocketMessage,
   });
 
-  const createRoom = (): void => {
-    if (!playerName.trim()) return;
-    connect();
-    setTimeout(() => {
+  // Send CREATE_ROOM message when connection is established and we're creating a room
+  useEffect(() => {
+    if (connectionStatus === 'connected' && isCreatingRoom) {
       sendMessage({
         type: 'CREATE_ROOM',
         playerName: playerName.trim(),
       });
-    }, 100);
+      setIsCreatingRoom(false);
+    }
+  }, [connectionStatus, isCreatingRoom, sendMessage, playerName]);
+
+  const createRoom = (): void => {
+    if (!playerName.trim()) return;
+    setIsCreatingRoom(true);
+    connect();
   };
 
   const joinRoom = (): void => {
