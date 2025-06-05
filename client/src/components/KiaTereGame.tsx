@@ -324,6 +324,7 @@ const KiaTereGame: React.FC = () => {
               onClick={createRoom}
               disabled={!playerName.trim() || connectionStatus === 'connecting'}
               className="w-full py-3 bg-teal-600 text-white rounded-lg font-semibold hover:bg-teal-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors"
+              data-testid="create-room-button"
             >
               Create Room
             </button>
@@ -378,7 +379,10 @@ const KiaTereGame: React.FC = () => {
               Game Lobby
             </h1>
             <div className="flex items-center justify-center gap-2 mb-4">
-              <span className="text-lg font-mono bg-slate-100 px-3 py-1 rounded">
+              <span
+                className="text-lg font-mono bg-slate-100 px-3 py-1 rounded"
+                data-testid="room-code"
+              >
                 {roomCode}
               </span>
               <button

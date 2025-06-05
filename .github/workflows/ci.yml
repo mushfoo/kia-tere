@@ -151,10 +151,18 @@ jobs:
           echo "Checking staging health..."
           curl -f ${{ secrets.STAGING_URL }}/health || exit 1
 
-      - name: Placeholder for browser tests
+      - name: Install e2e test dependencies
         run: |
-          echo "Browser tests would run here against ${{ secrets.STAGING_URL }}"
-          echo "TODO: Add Playwright/Cypress tests for WebSocket connectivity"
+          cd e2e
+          npm ci
+          npx playwright install chromium
+
+      - name: Run browser tests
+        run: |
+          cd e2e
+          BASE_URL=${{ secrets.STAGING_URL }} npm test
+        env:
+          CI: true
 
   deploy-production:
     if: github.ref == 'refs/heads/main'
