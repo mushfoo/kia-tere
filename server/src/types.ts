@@ -24,6 +24,9 @@ export interface GameState {
   roundNumber: number;
   gameStarted: boolean;
   difficulty: 'easy' | 'hard';
+  isOvertimeRound: boolean;
+  overtimeLevel: number;
+  answersRequired: number;
 }
 
 export interface WebSocketMessage {
@@ -38,7 +41,7 @@ export interface ExtendedWebSocket extends WebSocket {
 }
 
 export type EliminationResult = {
-  type: 'continue' | 'roundEnd' | 'gameEnd';
+  type: 'continue' | 'roundEnd' | 'gameEnd' | 'overtimeStart';
   room: Room;
   winner?: string;
 };

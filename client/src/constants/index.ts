@@ -84,14 +84,21 @@ const getWebSocketUrl = (): string => {
   // Auto-detect protocol based on current page
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   const host = window.location.hostname;
+  const port = window.location.port;
 
-  // Use localhost for development, current host for production
+  // Use localhost for development when accessing via localhost
   if (host === 'localhost' || host === '127.0.0.1') {
     return 'ws://localhost:9191';
   }
 
-  // For combined service deployment, WebSocket is on same host and port
-  return `${protocol}//${window.location.host}`;
+  // For development on network IP (port 3000), connect to WebSocket server on port 9191
+  if (port === '3000') {
+    return `${protocol}//${host}:9191`;
+  }
+
+  // For production deployment, WebSocket is on same host and port as HTTP
+  const wsPort = port || (protocol === 'wss:' ? '443' : '80');
+  return `${protocol}//${host}:${wsPort}`;
 };
 
 export const GAME_CONSTANTS = {

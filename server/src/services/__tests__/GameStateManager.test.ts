@@ -73,8 +73,8 @@ describe('GameStateManager', () => {
 
       it('should not allow turn actions when timer is not running', () => {
         // End turn without starting it
-        const turnEnded = gameManager.endTurn(room.roomCode, 'A');
-        expect(turnEnded?.gameState.usedLetters).toHaveLength(0);
+        const turnResult = gameManager.endTurn(room.roomCode, 'A');
+        expect(turnResult?.room.gameState.usedLetters).toHaveLength(0);
       });
     });
 

@@ -16,6 +16,9 @@ export interface GameState {
   roundNumber: number;
   gameStarted: boolean;
   difficulty: Difficulty;
+  isOvertimeRound: boolean;
+  overtimeLevel: number;
+  answersRequired: number;
 }
 
 export interface WebSocketMessage {

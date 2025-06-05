@@ -34,6 +34,9 @@ export function createInitialGameState(players: string[]): GameState {
     roundNumber: 1,
     gameStarted: false,
     difficulty: 'easy',
+    isOvertimeRound: false,
+    overtimeLevel: 0,
+    answersRequired: 1,
   };
 }
 
