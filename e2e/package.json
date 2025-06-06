@@ -7,6 +7,9 @@
     "test": "playwright test",
     "test:headed": "playwright test --headed",
     "test:ui": "playwright test --ui",
+    "test:local": "playwright test --config=playwright.local.config.ts",
+    "test:local:headed": "playwright test --config=playwright.local.config.ts --headed",
+    "test:ci": "playwright test --config=playwright.ci.config.ts",
     "install-browsers": "playwright install"
   },
   "keywords": [],
