@@ -14,7 +14,10 @@
     "check": "npm run lint:check && npm run format:check",
     "fix": "npm run fix --workspace=client && npm run fix --workspace=server",
     "start:staging": "node server/dist/server.js",
-    "start:production": "node server/dist/server.js"
+    "start:production": "node server/dist/server.js",
+    "test:e2e:local": "./e2e/scripts/test-local.sh",
+    "test:e2e:ci": "./e2e/scripts/test-ci.sh",
+    "test:e2e": "npm run test:e2e:local"
   },
   "devDependencies": {
     "husky": "^8.0.3",

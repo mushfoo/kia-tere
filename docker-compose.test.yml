@@ -1,0 +1,39 @@
+services:
+  e2e-server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    ports:
+      - "9191:9191"
+      - "9192:9192"
+    environment:
+      - NODE_ENV=test
+      - ALLOWED_ORIGINS=http://localhost:3000
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9192/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+  e2e-client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_WS_URL=ws://localhost:9191
+    depends_on:
+      e2e-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+      start_period: 15s
+
+networks:
+  default:
+    name: kia-tere-e2e
