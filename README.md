@@ -91,7 +91,7 @@ cd server && npm run build
 - Node.js 18+ (LTS recommended)
 - npm 8+ (included with Node.js)
 
-### Installation
+### Quick Start
 
 1. **Clone the repository**
 
@@ -288,17 +288,17 @@ kia-tere/
 **Running Tests:**
 
 ```bash
-# Unit tests
-cd client && npm test    # Client tests
-cd server && npm test    # Server tests
+# Unit tests (run from repo root)
+cd client && npm test    # Client component and hook tests
+cd server && npm test    # Server service and utility tests
 
-# E2E tests
-npm run test:e2e         # Local e2e tests
-npm run test:e2e:ci      # CI e2e tests
+# E2E tests (run from repo root)
+npm run test:e2e         # Local e2e tests with Playwright
+npm run test:e2e:ci      # CI e2e tests in containerized environment
 
-# Build verification
-cd client && npm run build
-cd server && npm run build
+# Build verification (run from repo root)
+cd client && npm run build  # Build React production bundle
+cd server && npm run build  # Compile TypeScript to JavaScript
 ```
 
 ### CI/CD Pipeline
@@ -359,29 +359,6 @@ docker build -t kia-tere-server ./server
 # Run with docker-compose (for e2e testing)
 docker-compose -f docker-compose.test.yml up
 ```
-
-## 🎯 Game Rules
-
-### Basic Rules
-
-- **2+ players** required to start
-- **10 seconds** per turn
-- **First to 3 rounds** wins the game
-- **No repeated letters** in the same round
-
-### Turn Flow
-
-1. Player's turn starts automatically
-2. Player selects a letter (can change selection)
-3. Player says their word out loud
-4. Player clicks "End Turn"
-5. Next player's turn begins immediately
-
-### Elimination
-
-- Players are eliminated if time runs out
-- Last player remaining wins the round
-- Eliminated players rejoin for the next round
 
 ## 🔌 WebSocket Events
 
