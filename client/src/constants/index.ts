@@ -81,24 +81,23 @@ const getWebSocketUrl = (): string => {
     return process.env.REACT_APP_WS_URL;
   }
 
-  // Auto-detect protocol based on current page
-  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const host = window.location.hostname;
-  const port = window.location.port;
+  const { protocol: httpProtocol, hostname, port } = window.location;
+  const wsProtocol = httpProtocol === 'https:' ? 'wss:' : 'ws:';
 
-  // Use localhost for development when accessing via localhost
-  if (host === 'localhost' || host === '127.0.0.1') {
-    return 'ws://localhost:9191';
+  // Development: Detect dev environment by localhost/127.0.0.1 or React dev server (port 3000)
+  // When running on port 3000 (React dev server), WebSocket server runs on port 9191
+  if (hostname === 'localhost' || hostname === '127.0.0.1' || port === '3000') {
+    // Use localhost for local IPs, otherwise use the actual hostname for network access
+    const devHost =
+      hostname === 'localhost' || hostname === '127.0.0.1'
+        ? 'localhost'
+        : hostname;
+    return `${wsProtocol}//${devHost}:9191`;
   }
 
-  // For development on network IP (port 3000), connect to WebSocket server on port 9191
-  if (port === '3000') {
-    return `${protocol}//${host}:9191`;
-  }
-
-  // For production deployment, WebSocket is on same host and port as HTTP
-  const wsPort = port || (protocol === 'wss:' ? '443' : '80');
-  return `${protocol}//${host}:${wsPort}`;
+  // Production: Use same host and port as HTTP (or default ports)
+  const wsPort = port || (wsProtocol === 'wss:' ? '443' : '80');
+  return `${wsProtocol}//${hostname}:${wsPort}`;
 };
 
 export const GAME_CONSTANTS = {
