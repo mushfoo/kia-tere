@@ -6,6 +6,16 @@ _"Hurry up!" in Te Reo Māori_
 
 A fast-paced multiplayer word game where players race against time to find words that match categories. Based on the popular board game Tapple, Kia Tere brings the excitement online with real-time multiplayer support.
 
+## ✨ Features
+
+- 🌐 **Real-time Multiplayer** - Play with friends anywhere in the world
+- 🔄 **Reconnection Support** - Rejoin games if you disconnect  
+- 📱 **Responsive Design** - Works on desktop, tablet, and mobile
+- 🎯 **22+ Categories** - From Animals to Superheroes
+- ⚡ **10-Second Turns** - Fast-paced gameplay keeps everyone engaged
+- 🏆 **Score Tracking** - First to win 3 rounds wins the game
+- 🎨 **Modern UI** - Clean, professional design with TypeScript
+
 ## 🎯 Game Rules
 
 ### Basic Rules
@@ -194,7 +204,7 @@ kia-tere/
 │   │   │   └── index.ts             # Shared type definitions
 │   │   ├── server.ts                # Main server entry
 │   │   ├── constants.ts             # Server constants
-│   │   └── types.ts                 # Legacy types (to be consolidated)
+│   │   └── types.ts                 # Legacy types (consolidation needed)
 │   ├── dist/                       # Compiled JavaScript output
 │   ├── package.json
 │   └── tsconfig.json
@@ -208,157 +218,38 @@ kia-tere/
 └── LICENSE
 ```
 
-## 🏗️ Architecture Overview
-
-### Monorepo Structure
-- **Root**: Workspace configuration with shared TypeScript and linting setup
-- **Client**: React application with TypeScript, Tailwind CSS, and WebSocket client
-- **Server**: Node.js WebSocket server with TypeScript and Jest testing
-- **E2E**: Playwright end-to-end testing infrastructure
-
-### Core Game Architecture
-
-**Server-Side Game Management:**
-- `GameStateManager` - Central game state orchestration, room management, player lifecycle
-- `WebSocketServer` - WebSocket connection handling, message routing, CORS configuration
-- Shared type definitions between client/server for WebSocket messages and game state
-
-**Client-Side Architecture:**
-- `KiaTereGame` - Main game component managing overall game flow and WebSocket connection
-- `useWebSocket` hook - WebSocket connection management with reconnection logic
-- `useTimer` hook - Game timer functionality with automatic cleanup
-- Component-based UI: `Menu`, `Lobby`, `GameBoard` with clear separation of concerns
-
-### Key Design Patterns
-
-**State Management:**
-- Server maintains authoritative game state in `GameStateManager`
-- Client receives state updates via WebSocket messages
-- Client components are largely stateless, driven by server state
-
-**WebSocket Communication:**
-- Bidirectional message-based protocol defined in shared types
-- Client events: `CREATE_ROOM`, `JOIN_ROOM`, `START_GAME`, `START_TURN`, `END_TURN`, `TIME_UP`
-- Server events: `ROOM_CREATED`, `ROOM_JOINED`, `GAME_STARTED`, `GAME_STATE_UPDATE`, `PLAYER_JOINED/LEFT`, `ROUND_END/GAME_END`
-
-**Game Flow:**
-- Players join lobby → Host starts game → Turn-based gameplay with 10-second timer → Round/game completion
-- Automatic player elimination on timeout, reconnection support for disconnected players
-- Difficulty affects available letter set (easy: 18 letters, hard: 26 letters)
-
-## 🧪 Testing & Development
+## 🛠️ Development
 
 ### Tech Stack
+- **Frontend**: React 18 + TypeScript + Tailwind CSS
+- **Backend**: Node.js + WebSocket + TypeScript  
+- **Testing**: Jest + React Testing Library + Playwright
+- **DevOps**: GitHub Actions + Docker + Railway
 
-**Frontend:**
-- React 18 with TypeScript
-- Tailwind CSS for styling
-- Lucide React for icons
-- Jest & React Testing Library for unit tests
-- Custom hooks for WebSocket and timer management
-
-**Backend:**
-- Node.js with TypeScript
-- WebSocket (ws library) for real-time communication
-- Express for health checks
-- Jest for unit testing
-- ts-node-dev for development hot reloading
-
-**DevOps & Testing:**
-- Playwright for end-to-end testing
-- GitHub Actions CI/CD pipeline
-- Docker containerization
-- ESLint & Prettier for code quality
-- Husky for pre-commit hooks
-
-### Testing Strategy
-
-**Unit Tests:**
-- Component testing with React Testing Library
-- Hook testing for custom WebSocket and timer logic
-- Service layer testing for game state management
-- Utility function testing
-
-**End-to-End Tests:**
-- Complete game flow testing with Playwright
-- Multi-player scenarios with containerized setup
-- WebSocket connection reliability testing
-- Cross-browser compatibility verification
-
-**Running Tests:**
-
+### Quick Commands
 ```bash
-# Unit tests (run from repo root)
-cd client && npm test    # Client component and hook tests
-cd server && npm test    # Server service and utility tests
+# Install dependencies
+npm install
 
-# E2E tests (run from repo root)
-npm run test:e2e         # Local e2e tests with Playwright
-npm run test:e2e:ci      # CI e2e tests in containerized environment
+# Start development servers
+cd server && npm run dev  # WebSocket server on :9191
+cd client && npm start    # React app on :3000
 
-# Build verification (run from repo root)
-cd client && npm run build  # Build React production bundle
-cd server && npm run build  # Compile TypeScript to JavaScript
+# Run tests
+npm run test:e2e         # End-to-end tests
+cd client && npm test     # Client unit tests
+cd server && npm test     # Server unit tests
+
+# Code quality
+npm run check            # Lint and format check
+npm run fix              # Fix lint and format issues
 ```
 
-### CI/CD Pipeline
-
-This project uses GitHub Actions for continuous integration:
-
-- **Triggers**: Pull requests to `main` and pushes to `main`
-- **Client Pipeline**: Dependencies, build, unit tests, linting
-- **Server Pipeline**: Dependencies, TypeScript compilation, unit tests, linting
-- **E2E Pipeline**: Full application testing with Docker containers
-- **Parallel Execution**: All jobs run simultaneously for faster feedback
-- **Branch Protection**: PRs require all checks to pass before merging
-
-## ⚙️ Configuration
-
-### Environment Variables
-
-**Client Configuration:**
-- `REACT_APP_WS_URL` - WebSocket server URL (defaults to `ws://localhost:9191`)
-
-**Server Configuration:**
-- `NODE_ENV` - Environment mode (`development`, `staging`, `production`)
-- `ALLOWED_ORIGINS` - Comma-separated list of allowed CORS origins for production/staging
-- `PORT` - Server port (defaults to 9191)
-
-### Development Setup
-
-**Local Development:**
-```bash
-# Client will connect to ws://localhost:9191 by default
-cd client && npm start
-
-# Server runs on port 9191 by default
-cd server && npm run dev
-```
-
-**Production Configuration:**
-```bash
-# Set environment variables
-export NODE_ENV=production
-export ALLOWED_ORIGINS=https://your-domain.com,https://staging.your-domain.com
-export REACT_APP_WS_URL=wss://your-websocket-server.com
-
-# Build and start
-cd server && npm run build && npm start
-cd client && npm run build
-```
-
-### Docker Support
-
-Both client and server include Dockerfile configurations:
-
-```bash
-# Build containers
-docker build -t kia-tere-client ./client
-docker build -t kia-tere-server ./server
-
-# Run with docker-compose (for e2e testing)
-docker-compose -f docker-compose.test.yml up
-```
+📚 **For detailed technical documentation, see the [Wiki](https://github.com/campbell-rehu/kia-tere/wiki):**
+- [Architecture](https://github.com/campbell-rehu/kia-tere/wiki/Architecture) - System design and patterns
+- [Development Setup](https://github.com/campbell-rehu/kia-tere/wiki/Development-Setup) - Complete development guide
+- [Testing Strategy](https://github.com/campbell-rehu/kia-tere/wiki/Testing-Strategy) - Unit, integration, and e2e testing
+- [Deployment](https://github.com/campbell-rehu/kia-tere/wiki/Deployment) - Railway and Docker deployment
 
 ## 🔌 WebSocket Events
 
@@ -382,12 +273,12 @@ docker-compose -f docker-compose.test.yml up
 
 ## 🚀 Deployment
 
-The application is configured for deployment on Railway with environment-specific configurations:
+Deployment is configured for Railway with Docker containerization:
+- **Staging & Production**: Environment-specific Railway configurations
+- **Docker**: Automated container builds for both client and server
+- **CI/CD**: GitHub Actions pipeline with automated testing
 
-- **Staging**: `railway.staging.json`
-- **Production**: `railway.production.json`
-
-Docker containers are built automatically for both client and server components during deployment.
+See the [Deployment Wiki](https://github.com/campbell-rehu/kia-tere/wiki/Deployment) for detailed setup instructions.
 
 ## 📄 License
 
