@@ -6,11 +6,10 @@ const execAsync = promisify(exec);
 async function waitForService(url: string, maxRetries = 30, interval = 2000): Promise<void> {
   for (let i = 0; i < maxRetries; i++) {
     try {
-      const response = await fetch(url);
-      if (response.ok) {
-        console.log(`✅ Service at ${url} is ready`);
-        return;
-      }
+      // Use curl for compatibility across different Node environments
+      await execAsync(`curl -f -s ${url}`);
+      console.log(`✅ Service at ${url} is ready`);
+      return;
     } catch (error) {
       // Service not ready yet
     }

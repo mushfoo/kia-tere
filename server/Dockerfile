@@ -18,13 +18,22 @@ RUN npm run build
 RUN npm prune --production
 
 # Copy health check script
-RUN echo 'const http = require("http"); const server = http.createServer((req, res) => { if (req.url === "/health") { res.writeHead(200); res.end("OK"); } else { res.writeHead(404); res.end(); } }); const port = process.env.HEALTH_PORT || 9192; server.listen(port, () => console.log(`Health check server running on port ${port}`));' > health-check.js
-
-# Expose ports
-EXPOSE 9191 9192
+COPY health-check.js .
 
 # Install curl for health checks
 RUN apk add --no-cache curl
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001
+
+# Change ownership of app directory
+RUN chown -R nodejs:nodejs /app
+
+# Switch to non-root user
+USER nodejs
+
+# Expose ports
+EXPOSE 9191 9192
 
 # Start both main server and health check
 CMD node health-check.js & node dist/server.js
