@@ -16,43 +16,26 @@ A fast-paced multiplayer word game where players race against time to find words
 - 🏆 **Score Tracking** - First to win 3 rounds wins the game
 - 🎨 **Modern UI** - Clean, professional design with TypeScript
 
-## 🎯 Game Rules
+## 🎮 How to Play
 
-### Basic Rules
-
-- **2+ players** required to start
-- **10 seconds** per turn
-- **First to 3 rounds** wins the game
-- **No repeated letters** in the same round
-
-### How to Play
-
+### Game Setup
 1. **Join or Create**: Create a room or join with a 6-digit code
-2. **Category Challenge**: Each round has a category (Animals, Foods, Countries, etc.)
-3. **Find Your Word**: Think of a word that fits the category
-4. **Select & Say**: Choose the starting letter and say your word aloud
-5. **Beat the Clock**: You have 10 seconds per turn
-6. **Win Rounds**: Last player standing wins the round
-7. **First to 3**: First player to win 3 rounds wins the game!
+2. **Minimum Players**: 2+ players required to start
+3. **Choose Difficulty**: Easy (18 letters A-R) or Hard (all 26 letters)
 
-### Turn Flow
+### Gameplay
+1. **Category Challenge**: Each round has a category (Animals, Foods, Countries, etc.)
+2. **Your Turn**: You have 10 seconds to find a word that fits the category
+3. **Select Letter**: Choose the starting letter of your word
+4. **Say Your Word**: Announce your word out loud to other players
+5. **End Turn**: Click "End Turn" to pass to the next player
+6. **Elimination**: If time runs out, you're eliminated from the round
 
-1. Player's turn starts automatically
-2. Player selects a letter (can change selection)
-3. Player says their word out loud
-4. Player clicks "End Turn"
-5. Next player's turn begins immediately
-
-### Elimination
-
-- Players are eliminated if time runs out
-- Last player remaining wins the round
-- Eliminated players rejoin for the next round
-
-### Difficulty Levels
-
-- **Easy**: 18 letters available (A-R)
-- **Hard**: All 26 letters available (A-Z)
+### Winning
+- **Round Victory**: Last player remaining wins the round
+- **Game Victory**: First player to win 3 rounds wins the game!
+- **Fresh Start**: Eliminated players rejoin for each new round
+- **No Repeats**: Used letters can't be selected again in the same round
 
 ## 🛠️ Development
 
@@ -251,34 +234,6 @@ npm run fix              # Fix lint and format issues
 - [Testing Strategy](https://github.com/campbell-rehu/kia-tere/wiki/Testing-Strategy) - Unit, integration, and e2e testing
 - [Deployment](https://github.com/campbell-rehu/kia-tere/wiki/Deployment) - Railway and Docker deployment
 
-## 🔌 WebSocket Events
-
-### Client → Server
-
-- `CREATE_ROOM` - Host creates a new game room
-- `JOIN_ROOM` - Player joins existing room
-- `START_GAME` - Host starts the game
-- `START_TURN` - Player starts their turn timer
-- `END_TURN` - Player completes their turn
-- `TIME_UP` - Player's time expired
-
-### Server → Client
-
-- `ROOM_CREATED` - Room successfully created
-- `ROOM_JOINED` - Successfully joined room
-- `GAME_STARTED` - Game has begun
-- `GAME_STATE_UPDATE` - Game state changed
-- `PLAYER_JOINED/LEFT` - Player connection updates
-- `ROUND_END/GAME_END` - Round or game completed
-
-## 🚀 Deployment
-
-Deployment is configured for Railway with Docker containerization:
-- **Staging & Production**: Environment-specific Railway configurations
-- **Docker**: Automated container builds for both client and server
-- **CI/CD**: GitHub Actions pipeline with automated testing
-
-See the [Deployment Wiki](https://github.com/campbell-rehu/kia-tere/wiki/Deployment) for detailed setup instructions.
 
 ## 📄 License
 
