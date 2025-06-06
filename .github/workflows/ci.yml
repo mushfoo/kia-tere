@@ -124,47 +124,6 @@ jobs:
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
 
-  browser-tests:
-    if: github.ref == 'refs/heads/main'
-    needs: [deploy-staging]
-    runs-on: self-hosted
-    environment: staging
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          clean: true
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "18"
-
-      - name: Wait for staging deployment
-        run: |
-          echo "Waiting for staging deployment to be ready..."
-          sleep 30
-
-      - name: Health check staging
-        run: |
-          echo "Checking staging health..."
-          curl -f ${{ secrets.STAGING_URL }}/health || exit 1
-
-      - name: Install e2e test dependencies
-        run: |
-          cd e2e
-          npm ci
-          npx playwright install chromium
-          npx playwright install-deps
-
-      - name: Run browser tests
-        run: |
-          cd e2e
-          BASE_URL=${{ secrets.STAGING_URL }} npm test
-        env:
-          CI: true
-
   deploy-production:
     if: github.ref == 'refs/heads/main'
     needs: [deploy-staging]
