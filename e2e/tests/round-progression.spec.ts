@@ -26,7 +26,7 @@ test.describe("Round Progression and Scoring", () => {
       
       // Start game
       await hostPage.locator("button", { hasText: "Start Game" }).click();
-      await expect(hostPage.locator("text=/Round|Turn|Game/")).toBeVisible({ timeout: 10000 });
+      await expect(hostPage.locator('[data-testid="game-playing"]')).toBeVisible({ timeout: 10000 });
 
       // Verify we start at Round 1
       await expect(hostPage.locator("text=/Round 1/")).toBeVisible();
@@ -109,7 +109,7 @@ test.describe("Round Progression and Scoring", () => {
       
       // Start game
       await hostPage.locator("button", { hasText: "Start Game" }).click();
-      await expect(hostPage.locator("text=/Round|Turn|Game/")).toBeVisible({ timeout: 10000 });
+      await expect(hostPage.locator('[data-testid="game-playing"]')).toBeVisible({ timeout: 10000 });
 
       // Verify initial scores are 0
       const scoreIndicators = [
@@ -177,7 +177,7 @@ test.describe("Round Progression and Scoring", () => {
       
       // Start game
       await hostPage.locator("button", { hasText: "Start Game" }).click();
-      await expect(hostPage.locator("text=/Round|Turn|Game/")).toBeVisible({ timeout: 10000 });
+      await expect(hostPage.locator('[data-testid="game-playing"]')).toBeVisible({ timeout: 10000 });
 
       // Play one turn to use a letter
       let currentPlayerPage = hostPage;
@@ -273,7 +273,7 @@ test.describe("Round Progression and Scoring", () => {
       
       // Start game
       await hostPage.locator("button", { hasText: "Start Game" }).click();
-      await expect(hostPage.locator("text=/Round|Turn|Game/")).toBeVisible({ timeout: 10000 });
+      await expect(hostPage.locator('[data-testid="game-playing"]')).toBeVisible({ timeout: 10000 });
 
       // Look for game end conditions (usually first to 3 wins)
       const gameEndIndicators = [

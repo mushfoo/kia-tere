@@ -26,7 +26,7 @@ test.describe("Turn Mechanics", () => {
       
       // Start game
       await hostPage.locator("button", { hasText: "Start Game" }).click();
-      await expect(hostPage.locator("text=/Round|Turn|Game/")).toBeVisible({ timeout: 10000 });
+      await expect(hostPage.locator('[data-testid="game-playing"]')).toBeVisible({ timeout: 10000 });
 
       // Track turn order for multiple turns
       const turnOrder = [];
@@ -126,7 +126,7 @@ test.describe("Turn Mechanics", () => {
       
       // Start game
       await hostPage.locator("button", { hasText: "Start Game" }).click();
-      await expect(hostPage.locator("text=/Round|Turn|Game/")).toBeVisible({ timeout: 10000 });
+      await expect(hostPage.locator('[data-testid="game-playing"]')).toBeVisible({ timeout: 10000 });
 
       // Check visual indicators for whose turn it is
       const hostCanStart = await hostPage.locator("button", { hasText: "Start Turn" }).isVisible();
@@ -205,7 +205,7 @@ test.describe("Turn Mechanics", () => {
       
       // Start game
       await hostPage.locator("button", { hasText: "Start Game" }).click();
-      await expect(hostPage.locator("text=/Round|Turn|Game/")).toBeVisible({ timeout: 10000 });
+      await expect(hostPage.locator('[data-testid="game-playing"]')).toBeVisible({ timeout: 10000 });
 
       // Execute one complete turn and verify smooth transition
       let currentPlayerPage = hostPage;
@@ -280,7 +280,7 @@ test.describe("Turn Mechanics", () => {
       
       // Start game
       await hostPage.locator("button", { hasText: "Start Game" }).click();
-      await expect(hostPage.locator("text=/Round|Turn|Game/")).toBeVisible({ timeout: 10000 });
+      await expect(hostPage.locator('[data-testid="game-playing"]')).toBeVisible({ timeout: 10000 });
 
       // Verify only one player can start a turn at any time
       const hostCanStart = await hostPage.locator("button", { hasText: "Start Turn" }).isVisible();

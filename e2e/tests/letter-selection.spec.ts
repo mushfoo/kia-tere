@@ -26,7 +26,7 @@ test.describe("Letter Selection Mechanics", () => {
       
       // Start game
       await hostPage.locator("button", { hasText: "Start Game" }).click();
-      await expect(hostPage.locator("text=/Round|Turn|Game/")).toBeVisible({ timeout: 10000 });
+      await expect(hostPage.locator('[data-testid="game-playing"]')).toBeVisible({ timeout: 10000 });
 
       // Find whose turn it is
       let currentPlayerPage = hostPage;
@@ -126,7 +126,7 @@ test.describe("Letter Selection Mechanics", () => {
       
       // Start game
       await hostPage.locator("button", { hasText: "Start Game" }).click();
-      await expect(hostPage.locator("text=/Round|Turn|Game/")).toBeVisible({ timeout: 10000 });
+      await expect(hostPage.locator('[data-testid="game-playing"]')).toBeVisible({ timeout: 10000 });
 
       // Find whose turn it is and who is waiting
       let currentPlayerPage = hostPage;
@@ -203,7 +203,7 @@ test.describe("Letter Selection Mechanics", () => {
       
       // Start game
       await hostPage.locator("button", { hasText: "Start Game" }).click();
-      await expect(hostPage.locator("text=/Round|Turn|Game/")).toBeVisible({ timeout: 10000 });
+      await expect(hostPage.locator('[data-testid="game-playing"]')).toBeVisible({ timeout: 10000 });
 
       // Play a turn and complete it to mark a letter as used
       let currentPlayerPage = hostPage;
@@ -300,7 +300,7 @@ test.describe("Letter Selection Mechanics", () => {
       
       // Start game
       await hostPage.locator("button", { hasText: "Start Game" }).click();
-      await expect(hostPage.locator("text=/Round|Turn|Game/")).toBeVisible({ timeout: 10000 });
+      await expect(hostPage.locator('[data-testid="game-playing"]')).toBeVisible({ timeout: 10000 });
 
       // Find whose turn it is
       let currentPlayerPage = hostPage;

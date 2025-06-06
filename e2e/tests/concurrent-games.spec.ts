@@ -113,10 +113,11 @@ test.describe("Concurrent Games", () => {
       console.log("Both concurrent games running independently");
 
     } finally {
-      await game1HostContext.close();
-      await game1PlayerContext.close();
-      await game2HostContext.close();
-      await game2PlayerContext.close();
+      // Close contexts with error handling
+      try { await game1HostContext.close(); } catch (e) { console.log('Error closing game1HostContext:', e); }
+      try { await game1PlayerContext.close(); } catch (e) { console.log('Error closing game1PlayerContext:', e); }
+      try { await game2HostContext.close(); } catch (e) { console.log('Error closing game2HostContext:', e); }
+      try { await game2PlayerContext.close(); } catch (e) { console.log('Error closing game2PlayerContext:', e); }
     }
   });
 
@@ -228,7 +229,7 @@ test.describe("Concurrent Games", () => {
       // Wait for all games to start
       for (let i = 0; i < 5; i++) {
         const hostPage = pages[i];
-        await expect(hostPage.locator("text=/Round|Turn|Game/")).toBeVisible({ timeout: 15000 });
+        await expect(hostPage.locator('[data-testid="game-playing"]')).toBeVisible({ timeout: 15000 });
       }
 
       // Verify each game is in a valid state

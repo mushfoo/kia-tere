@@ -232,8 +232,8 @@ test.describe("Overtime and Special Game Modes", () => {
       while (rounds < maxRounds) {
         // Check for end game conditions
         const endGameIndicators = [
-          hostPage.locator("text=/game.*end|final.*round|winner|congratulations/i"),
-          playerPage.locator("text=/game.*end|final.*round|winner|congratulations/i"),
+          hostPage.locator('[data-testid="game-over"]'),
+          playerPage.locator('[data-testid="game-over"]'),
           hostPage.locator("button", { hasText: /new.*game|play.*again|return.*menu/i }),
           playerPage.locator("button", { hasText: /new.*game|play.*again|return.*menu/i }),
         ];
@@ -380,8 +380,8 @@ test.describe("Overtime and Special Game Modes", () => {
       // Even if no tie-breaking is detected, game should be in valid state
       const gameValid = await hostPage.locator("button:has-text('Start Turn')").isVisible() ||
                        await playerPage.locator("button:has-text('Start Turn')").isVisible() ||
-                       await hostPage.locator("text=/winner|end/i").isVisible() ||
-                       await playerPage.locator("text=/winner|end/i").isVisible();
+                       await hostPage.locator('[data-testid="game-over"]').isVisible() ||
+                       await playerPage.locator('[data-testid="game-over"]').isVisible();
       
       expect(gameValid).toBe(true);
       
