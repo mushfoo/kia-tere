@@ -26,7 +26,7 @@ test.describe("Timer and Elimination", () => {
       
       // Start game
       await hostPage.locator("button", { hasText: "Start Game" }).click();
-      await expect(hostPage.locator("text=/Round|Turn|Game/")).toBeVisible({ timeout: 10000 });
+      await expect(hostPage.locator('[data-testid="game-playing"]')).toBeVisible({ timeout: 10000 });
 
       // Find whose turn it is
       let currentPlayerPage = hostPage;
@@ -91,7 +91,7 @@ test.describe("Timer and Elimination", () => {
       
       // Start game
       await hostPage.locator("button", { hasText: "Start Game" }).click();
-      await expect(hostPage.locator("text=/Round|Turn|Game/")).toBeVisible({ timeout: 10000 });
+      await expect(hostPage.locator('[data-testid="game-playing"]')).toBeVisible({ timeout: 10000 });
 
       // Find whose turn it is
       let currentPlayerPage = hostPage;
@@ -164,7 +164,7 @@ test.describe("Timer and Elimination", () => {
       
       // Start game
       await hostPage.locator("button", { hasText: "Start Game" }).click();
-      await expect(hostPage.locator("text=/Round|Turn|Game/")).toBeVisible({ timeout: 10000 });
+      await expect(hostPage.locator('[data-testid="game-playing"]')).toBeVisible({ timeout: 10000 });
 
       // Find whose turn it is
       let currentPlayerPage = hostPage;

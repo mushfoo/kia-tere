@@ -206,11 +206,16 @@ export class WebSocketServer {
     }
 
     const difficulty = message.difficulty || 'easy';
-    this.gameManager.startGame(ws.roomCode!, difficulty);
+    const updatedRoom = this.gameManager.startGame(ws.roomCode!, difficulty);
+
+    if (!updatedRoom) {
+      this.sendError(ws, 'Failed to start game');
+      return;
+    }
 
     this.broadcastToRoom(ws.roomCode!, {
       type: 'GAME_STARTED',
-      gameState: room.gameState,
+      gameState: updatedRoom.gameState,
     });
 
     console.log(

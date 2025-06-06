@@ -411,7 +411,7 @@ const KiaTereGame: React.FC = () => {
   // Lobby
   if (gameState === 'lobby') {
     return (
-      <div className="min-h-screen bg-slate-50 p-4">
+      <div className="min-h-screen bg-slate-50 p-4" data-testid="game-lobby">
         <div className="max-w-md mx-auto bg-white rounded-2xl shadow-lg border p-6">
           <div className="text-center mb-6">
             <h1 className="text-2xl font-bold text-slate-800 mb-2">
@@ -579,7 +579,10 @@ const KiaTereGame: React.FC = () => {
       ([_, wins]) => wins >= 3
     )?.[0];
     return (
-      <div className="min-h-screen bg-slate-50 p-4 flex items-center justify-center">
+      <div
+        className="min-h-screen bg-slate-50 p-4 flex items-center justify-center"
+        data-testid="game-over"
+      >
         <div className="bg-white rounded-2xl shadow-lg border p-8 text-center max-w-md">
           <Trophy className="w-16 h-16 text-amber-500 mx-auto mb-4" />
           <h1 className="text-3xl font-bold text-slate-800 mb-2">Game Over!</h1>
@@ -620,14 +623,17 @@ const KiaTereGame: React.FC = () => {
 
   // Playing Game
   return (
-    <div className="min-h-screen bg-slate-50 p-4">
+    <div className="min-h-screen bg-slate-50 p-4" data-testid="game-playing">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="bg-white rounded-2xl shadow-lg border p-6 mb-6">
           <div className="flex flex-wrap justify-between items-center gap-4">
             <div className="flex items-center gap-4">
               <h1 className="text-2xl font-bold text-slate-800">Kia Tere</h1>
-              <div className="flex items-center gap-2 text-sm text-slate-600">
+              <div
+                className="flex items-center gap-2 text-sm text-slate-600"
+                data-testid="round-indicator"
+              >
                 <Target className="w-4 h-4" />
                 Round {roundNumber}
               </div>

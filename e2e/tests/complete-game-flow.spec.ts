@@ -41,16 +41,21 @@ test.describe("Complete Game Flow", () => {
       await startButton.click();
 
       // Step 4: Wait for game to start and verify game state
-      await expect(hostPage.locator("text=Game Lobby")).not.toBeVisible({ timeout: 10000 });
-      await expect(playerPage.locator("text=Game Lobby")).not.toBeVisible({ timeout: 10000 });
+      await expect(hostPage.locator('[data-testid="game-lobby"]')).not.toBeVisible({ timeout: 10000 });
+      await expect(playerPage.locator('[data-testid="game-lobby"]')).not.toBeVisible({ timeout: 10000 });
 
-      // Verify game has started by checking for turn buttons or other game elements
-      const hostGameStarted = await hostPage.locator("button:has-text('Start Turn')").isVisible() ||
-                             await hostPage.locator("[data-testid='timer-container']").isVisible();
-      const playerGameStarted = await playerPage.locator("button:has-text('Start Turn')").isVisible() ||
-                               await playerPage.locator("[data-testid='timer-container']").isVisible();
+      // Wait for playing game UI to appear
+      await expect(hostPage.locator('[data-testid="game-playing"]')).toBeVisible({ timeout: 10000 });
+      await expect(playerPage.locator('[data-testid="game-playing"]')).toBeVisible({ timeout: 10000 });
+
+      // Verify at least one player can start their turn
+      await hostPage.waitForTimeout(1000); // Give WebSocket time to sync
+      await playerPage.waitForTimeout(1000);
       
-      expect(hostGameStarted || playerGameStarted).toBe(true);
+      const hostCanStart = await hostPage.locator("button", { hasText: "Start Turn" }).isVisible();
+      const playerCanStart = await playerPage.locator("button", { hasText: "Start Turn" }).isVisible();
+      
+      expect(hostCanStart || playerCanStart).toBe(true);
 
       // Step 5: Identify whose turn it is and play through a few turns
       let currentPlayerPage = hostPage;
