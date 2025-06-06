@@ -84,8 +84,10 @@ const getWebSocketUrl = (): string => {
   const { protocol: httpProtocol, hostname, port } = window.location;
   const wsProtocol = httpProtocol === 'https:' ? 'wss:' : 'ws:';
 
-  // Development: Use localhost:9191 for local development or port 9191 for network access
+  // Development: Detect dev environment by localhost/127.0.0.1 or React dev server (port 3000)
+  // When running on port 3000 (React dev server), WebSocket server runs on port 9191
   if (hostname === 'localhost' || hostname === '127.0.0.1' || port === '3000') {
+    // Use localhost for local IPs, otherwise use the actual hostname for network access
     const devHost =
       hostname === 'localhost' || hostname === '127.0.0.1'
         ? 'localhost'
