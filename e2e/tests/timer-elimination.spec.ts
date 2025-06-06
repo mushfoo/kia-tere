@@ -180,8 +180,24 @@ test.describe("Timer and Elimination", () => {
       // Wait for timer to appear
       await expect(currentPlayerPage.locator("text=/Timer|[0-9]+s/")).toBeVisible({ timeout: 5000 });
 
-      // Wait for timer to get low (around 7-8 seconds, should show warnings at ≤3s)
-      await currentPlayerPage.waitForTimeout(7000);
+      // Wait for timer to get low (should show warnings at ≤3s)
+      const timeout = 10000; // Maximum wait time of 10 seconds
+      const pollingInterval = 100; // Poll every 100ms
+      let timerLow = false;
+      const startTime = Date.now();
+      while (Date.now() - startTime < timeout) {
+        const timerText = await currentPlayerPage.locator("text=/[0-9]+s?/").textContent();
+        const timerMatch = timerText?.match(/(\d+)/);
+        if (timerMatch) {
+          const timerValue = parseInt(timerMatch[1]);
+          if (timerValue <= 3) {
+            timerLow = true;
+            break;
+          }
+        }
+        await currentPlayerPage.waitForTimeout(pollingInterval);
+      }
+      expect(timerLow).toBe(true);
 
       // Look for visual warning indicators (red text, warnings, etc.)
       const warningIndicators = [
@@ -201,21 +217,10 @@ test.describe("Timer and Elimination", () => {
         }
       }
 
-      // Also check if timer value is low (≤3)
-      const timerText = await currentPlayerPage.locator("text=/[0-9]+s?/").textContent();
-      const timerMatch = timerText?.match(/(\d+)/);
-      let timerLow = false;
-      if (timerMatch) {
-        const timerValue = parseInt(timerMatch[1]);
-        timerLow = timerValue <= 3;
-      }
+      // Since we've confirmed timer is low (≤3), we should see visual warnings
+      expect(hasWarning).toBe(true);
 
-      // If timer is low, we should see warnings
-      if (timerLow) {
-        expect(hasWarning).toBe(true);
-      }
-
-      console.log(`Timer warning test: Timer value: ${timerText}, Has warning: ${hasWarning}, Timer low: ${timerLow}`);
+      console.log(`Timer warning test: Timer low confirmed, Has warning: ${hasWarning}`);
 
     } finally {
       await hostContext.close();

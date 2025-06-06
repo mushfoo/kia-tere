@@ -156,6 +156,9 @@ test.describe("Turn Mechanics", () => {
         }
       }
 
+      // At minimum, the Start Turn button should be a visual indicator
+      expect(hasVisualIndicator).toBe(true);
+
       // Waiting player should NOT have start turn button
       await expect(waitingPlayerPage.locator("button", { hasText: "Start Turn" })).not.toBeVisible();
 
