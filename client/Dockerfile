@@ -1,12 +1,13 @@
-FROM node:18-alpine
+# Build stage
+FROM node:18-alpine AS builder
 
 WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm install
+# Install dependencies including dev dependencies for building
+RUN npm ci --legacy-peer-deps --omit=optional
 
 # Copy source code
 COPY . .
@@ -14,17 +15,20 @@ COPY . .
 # Build the application
 RUN npm run build
 
-# Install serve to serve the build with exact version
-RUN npm install -g serve@14.2.0
+# Production stage
+FROM node:18-alpine AS production
 
-# Install curl for health checks
-RUN apk add --no-cache curl
+WORKDIR /app
+
+# Install serve and curl in a single layer
+RUN npm install -g serve@14.2.0 && \
+    apk add --no-cache curl
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001
 
-# Change ownership of app directory
-RUN chown -R nodejs:nodejs /app
+# Copy only the built application from builder stage
+COPY --from=builder --chown=nodejs:nodejs /app/build ./build
 
 # Switch to non-root user
 USER nodejs

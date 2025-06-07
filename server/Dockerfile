@@ -1,12 +1,13 @@
-FROM node:18-alpine
+# Build stage
+FROM node:18-alpine AS builder
 
 WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
 
-# Install all dependencies (including dev dependencies for building)
-RUN npm install
+# Install all dependencies including dev dependencies for building
+RUN npm ci --omit=optional
 
 # Copy source code
 COPY . .
@@ -14,20 +15,25 @@ COPY . .
 # Build the application
 RUN npm run build
 
-# Remove dev dependencies after build
-RUN npm prune --production
+# Production stage
+FROM node:18-alpine AS production
 
-# Copy health check script
-COPY health-check.js .
+WORKDIR /app
 
-# Install curl for health checks
-RUN apk add --no-cache curl
+# Copy package files for production dependencies
+COPY package*.json ./
+
+# Install only production dependencies
+RUN npm ci --omit=dev --omit=optional && \
+    apk add --no-cache curl && \
+    npm cache clean --force
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001
 
-# Change ownership of app directory
-RUN chown -R nodejs:nodejs /app
+# Copy built application and health check script from builder
+COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist
+COPY --chown=nodejs:nodejs health-check.js .
 
 # Switch to non-root user
 USER nodejs
