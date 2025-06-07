@@ -32,12 +32,21 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "18"
-
-      - name: Clear npm cache
-        run: npm cache clean --force
+          cache: 'npm'
+          cache-dependency-path: './client/package-lock.json'
 
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
+
+      - name: Cache build artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            ./client/build
+            ./client/node_modules/.cache
+          key: client-build-${{ runner.os }}-${{ hashFiles('client/src/**/*', 'client/public/**/*', 'client/package-lock.json') }}
+          restore-keys: |
+            client-build-${{ runner.os }}-
 
       - name: Lint check
         run: npm run lint:check || true # Don't fail on lint errors
@@ -71,9 +80,21 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "18"
+          cache: 'npm'
+          cache-dependency-path: './server/package-lock.json'
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Cache build artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            ./server/dist
+            ./server/node_modules/.cache
+          key: server-build-${{ runner.os }}-${{ hashFiles('server/src/**/*', 'server/package-lock.json') }}
+          restore-keys: |
+            server-build-${{ runner.os }}-
 
       - name: Lint check
         run: npm run lint:check || true
