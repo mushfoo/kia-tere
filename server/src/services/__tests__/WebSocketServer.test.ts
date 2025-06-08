@@ -273,5 +273,179 @@ describe('WebSocketServer', () => {
       expect(room?.connectedPlayers).toHaveLength(1);
       expect(room?.players).toHaveLength(3);
     });
+
+    it('should handle disconnection during active game', () => {
+      // Start game
+      const startMessage: WebSocketMessage = {
+        type: 'START_GAME',
+        roomCode,
+        playerName: 'host',
+      };
+      server.handleMessage(mockWs as any, startMessage);
+
+      // Start turn
+      const startTurnMessage: WebSocketMessage = {
+        type: 'START_TURN',
+        roomCode,
+        playerName: 'host',
+      };
+      server.handleMessage(mockWs as any, startTurnMessage);
+
+      // Simulate disconnection during game
+      server.handleDisconnection(joinWs as any);
+
+      // Verify room state persists
+      const room = server.getRoom(roomCode);
+      expect(room?.gameState.gameStarted).toBe(true);
+      expect(room?.connectedPlayers).not.toContain('player1');
+      expect(room?.players).toContain('player1'); // Still in player list
+    });
+
+    it('should handle reconnection with preserved game state', () => {
+      // Start game and make a move
+      const startMessage: WebSocketMessage = {
+        type: 'START_GAME',
+        roomCode,
+        playerName: 'host',
+      };
+      server.handleMessage(mockWs as any, startMessage);
+
+      const startTurnMessage: WebSocketMessage = {
+        type: 'START_TURN',
+        roomCode,
+        playerName: 'host',
+      };
+      server.handleMessage(mockWs as any, startTurnMessage);
+
+      const endTurnMessage: WebSocketMessage = {
+        type: 'END_TURN',
+        roomCode,
+        playerName: 'host',
+        selectedLetter: 'A',
+      };
+      server.handleMessage(mockWs as any, endTurnMessage);
+
+      // Disconnect player
+      server.handleDisconnection(joinWs as any);
+
+      // Reconnect player
+      const newWs = new MockWebSocket();
+      const rejoinMessage: WebSocketMessage = {
+        type: 'JOIN_ROOM',
+        roomCode,
+        playerName: 'player1',
+      };
+      server.handleMessage(newWs as any, rejoinMessage);
+
+      // Verify game state is preserved - may have multiple messages
+      expect(newWs.messages.length).toBeGreaterThanOrEqual(1);
+      const roomJoinedMessage = newWs.messages.find(
+        (msg) => msg.type === 'ROOM_JOINED'
+      );
+      expect(roomJoinedMessage).toBeDefined();
+
+      // Check game state from any message that has it
+      const gameStateMessage = newWs.messages.find((msg) => msg.gameState);
+      expect(gameStateMessage?.gameState?.usedLetters).toContain('A');
+      expect(gameStateMessage?.gameState?.gameStarted).toBe(true);
+    });
+
+    it('should handle rapid disconnect/reconnect cycles', () => {
+      for (let i = 0; i < 5; i++) {
+        // Disconnect
+        server.handleDisconnection(joinWs as any);
+        const room1 = server.getRoom(roomCode);
+        expect(room1?.connectedPlayers).not.toContain('player1');
+
+        // Reconnect
+        const rejoinMessage: WebSocketMessage = {
+          type: 'JOIN_ROOM',
+          roomCode,
+          playerName: 'player1',
+        };
+        server.handleMessage(joinWs as any, rejoinMessage);
+        const room2 = server.getRoom(roomCode);
+        expect(room2?.connectedPlayers).toContain('player1');
+      }
+
+      // Verify final state is consistent
+      const finalRoom = server.getRoom(roomCode);
+      expect(finalRoom?.players).toHaveLength(2);
+      expect(finalRoom?.connectedPlayers).toHaveLength(2);
+    });
+
+    it('should handle simultaneous disconnections and reconnections', () => {
+      const players = ['player2', 'player3', 'player4'];
+      const sockets = players.map(() => new MockWebSocket());
+
+      // Add multiple players
+      players.forEach((player, index) => {
+        const joinMessage: WebSocketMessage = {
+          type: 'JOIN_ROOM',
+          roomCode,
+          playerName: player,
+        };
+        server.handleMessage(sockets[index] as any, joinMessage);
+      });
+
+      // Disconnect all new players
+      sockets.forEach((socket) => {
+        server.handleDisconnection(socket as any);
+      });
+
+      const roomAfterDisconnects = server.getRoom(roomCode);
+      expect(roomAfterDisconnects?.connectedPlayers).toHaveLength(2); // host + player1
+
+      // Reconnect all players
+      players.forEach((player, index) => {
+        const rejoinMessage: WebSocketMessage = {
+          type: 'JOIN_ROOM',
+          roomCode,
+          playerName: player,
+        };
+        server.handleMessage(sockets[index] as any, rejoinMessage);
+      });
+
+      const roomAfterReconnects = server.getRoom(roomCode);
+      expect(roomAfterReconnects?.connectedPlayers).toHaveLength(5); // All players reconnected
+      expect(roomAfterReconnects?.players).toHaveLength(5);
+    });
+
+    it('should maintain WebSocket message integrity during reconnection', () => {
+      // Start game
+      const startMessage: WebSocketMessage = {
+        type: 'START_GAME',
+        roomCode,
+        playerName: 'host',
+      };
+      server.handleMessage(mockWs as any, startMessage);
+
+      // Disconnect and reconnect during message flow
+      server.handleDisconnection(joinWs as any);
+
+      // Send messages while disconnected (should not crash)
+      const startTurnMessage: WebSocketMessage = {
+        type: 'START_TURN',
+        roomCode,
+        playerName: 'host',
+      };
+      server.handleMessage(mockWs as any, startTurnMessage);
+
+      // Clear previous messages
+      joinWs.messages = [];
+
+      // Reconnect
+      const rejoinMessage: WebSocketMessage = {
+        type: 'JOIN_ROOM',
+        roomCode,
+        playerName: 'player1',
+      };
+      server.handleMessage(joinWs as any, rejoinMessage);
+
+      // Verify reconnected player receives current state
+      expect(joinWs.messages.length).toBeGreaterThanOrEqual(1);
+      const gameStateMessage = joinWs.messages.find((msg) => msg.gameState);
+      expect(gameStateMessage?.gameState?.isTimerRunning).toBe(true);
+    });
   });
 });

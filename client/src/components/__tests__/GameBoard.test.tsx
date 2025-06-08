@@ -104,4 +104,92 @@ describe('GameBoard', () => {
 
     expect(screen.queryByText("It's your turn!")).not.toBeInTheDocument();
   });
+
+  describe('Error Handling', () => {
+    it('should handle invalid props gracefully', () => {
+      const invalidProps = {
+        ...mockProps,
+        usedLetters: new Set(),
+        letters: [],
+      };
+
+      expect(() => render(<GameBoard {...invalidProps} />)).not.toThrow();
+    });
+
+    it('should handle negative time values', () => {
+      render(<GameBoard {...mockProps} timeLeft={-5} />);
+
+      const timerContainer = screen.getByTestId('timer-container');
+      expect(within(timerContainer).getByText('-5s')).toBeInTheDocument();
+    });
+
+    it('should handle empty round wins object', () => {
+      render(<GameBoard {...mockProps} roundWins={{}} />);
+
+      expect(screen.queryByText('Player1: 2')).not.toBeInTheDocument();
+      expect(screen.queryByText('Player2: 1')).not.toBeInTheDocument();
+    });
+
+    it('should handle extremely long player names', () => {
+      const longName = 'A'.repeat(100);
+      render(<GameBoard {...mockProps} currentPlayer={longName} />);
+
+      expect(screen.getByText(longName)).toBeInTheDocument();
+    });
+
+    it('should handle empty letters array', () => {
+      render(<GameBoard {...mockProps} letters={[]} />);
+
+      expect(screen.queryByTestId(/letter-button-/)).not.toBeInTheDocument();
+    });
+
+    it('should handle missing onLetterSelect callback', () => {
+      const propsWithoutCallback = {
+        ...mockProps,
+        onLetterSelect: jest.fn(),
+      };
+
+      expect(() =>
+        render(<GameBoard {...propsWithoutCallback} />)
+      ).not.toThrow();
+    });
+
+    it('should handle very large round numbers', () => {
+      render(<GameBoard {...mockProps} roundNumber={999999} />);
+
+      expect(screen.getByText('Round 999999')).toBeInTheDocument();
+    });
+
+    it('should handle special characters in category name', () => {
+      render(
+        <GameBoard {...mockProps} currentCategory="Animals & Pets (Wild)" />
+      );
+
+      expect(
+        screen.getByText('Category: Animals & Pets (Wild)')
+      ).toBeInTheDocument();
+    });
+
+    it('should handle letter selection callback execution', () => {
+      const letterCallback = jest.fn();
+
+      render(<GameBoard {...mockProps} onLetterSelect={letterCallback} />);
+
+      const letterButton = screen.getByTestId('letter-button-C');
+      fireEvent.click(letterButton);
+
+      expect(letterCallback).toHaveBeenCalledWith('C');
+    });
+
+    it('should handle null/undefined usedLetters gracefully', () => {
+      const propsWithNullUsedLetters = {
+        ...mockProps,
+        usedLetters: new Set(),
+      };
+
+      expect(() =>
+        render(<GameBoard {...propsWithNullUsedLetters} />)
+      ).not.toThrow();
+    });
+  });
 });

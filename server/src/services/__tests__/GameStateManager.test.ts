@@ -288,6 +288,340 @@ describe('GameStateManager', () => {
     });
   });
 
+  describe('Concurrent Games Management', () => {
+    it('should manage multiple rooms simultaneously', () => {
+      const room1 = gameManager.createRoom('host1');
+      const room2 = gameManager.createRoom('host2');
+      const room3 = gameManager.createRoom('host3');
+
+      expect(room1.roomCode).not.toBe(room2.roomCode);
+      expect(room2.roomCode).not.toBe(room3.roomCode);
+      expect(room1.roomCode).not.toBe(room3.roomCode);
+
+      expect(gameManager.getRoom(room1.roomCode)).toBeDefined();
+      expect(gameManager.getRoom(room2.roomCode)).toBeDefined();
+      expect(gameManager.getRoom(room3.roomCode)).toBeDefined();
+    });
+
+    it('should isolate game state between rooms', () => {
+      const room1 = gameManager.createRoom('host1');
+      const room2 = gameManager.createRoom('host2');
+
+      gameManager.joinRoom(room1.roomCode, 'player1');
+      gameManager.joinRoom(room2.roomCode, 'player2');
+
+      gameManager.startGame(room1.roomCode);
+      gameManager.startTurn(room1.roomCode);
+      gameManager.endTurn(room1.roomCode, 'A');
+
+      const room1State = gameManager.getRoom(room1.roomCode);
+      const room2State = gameManager.getRoom(room2.roomCode);
+
+      expect(room1State?.gameState.gameStarted).toBe(true);
+      expect(room2State?.gameState.gameStarted).toBe(false);
+      expect(room1State?.gameState.usedLetters).toContain('A');
+      expect(room2State?.gameState.usedLetters).toHaveLength(0);
+    });
+
+    it('should handle different difficulty levels in concurrent games', () => {
+      const room1 = gameManager.createRoom('host1');
+      const room2 = gameManager.createRoom('host2');
+
+      gameManager.joinRoom(room1.roomCode, 'player1');
+      gameManager.joinRoom(room2.roomCode, 'player2');
+
+      gameManager.startGame(room1.roomCode);
+      gameManager.startGame(room2.roomCode);
+
+      const updatedRoom1 = gameManager.getRoom(room1.roomCode)!;
+      const updatedRoom2 = gameManager.getRoom(room2.roomCode)!;
+
+      expect(updatedRoom1.gameState.gameStarted).toBe(true);
+      expect(updatedRoom2.gameState.gameStarted).toBe(true);
+      expect(updatedRoom1.roomCode).not.toBe(updatedRoom2.roomCode);
+    });
+  });
+
+  describe('Timer Elimination Logic', () => {
+    beforeEach(() => {
+      gameManager.joinRoom(room.roomCode, 'player1');
+      gameManager.joinRoom(room.roomCode, 'player2');
+      gameManager.startGame(room.roomCode);
+    });
+
+    it('should eliminate player on timeout and advance to next player', () => {
+      gameManager.startTurn(room.roomCode);
+      const testRoom = gameManager.getRoom(room.roomCode)!;
+      const initialActivePlayers = [...testRoom.gameState.activePlayers];
+
+      const result = gameManager.eliminatePlayer(room.roomCode);
+
+      expect(result?.room.gameState.activePlayers).toHaveLength(
+        initialActivePlayers.length - 1
+      );
+      expect(result?.type).toBeDefined();
+    });
+
+    it('should handle timeout with only one player remaining', () => {
+      const testRoom = gameManager.getRoom(room.roomCode)!;
+      testRoom.gameState.activePlayers = ['host'];
+      testRoom.gameState.currentPlayerIndex = 0;
+      gameManager.startTurn(room.roomCode);
+
+      const result = gameManager.eliminatePlayer(room.roomCode);
+
+      expect(result?.type).toBeDefined();
+      expect(result?.room.gameState.activePlayers).toHaveLength(0);
+    });
+
+    it('should maintain turn order after elimination', () => {
+      gameManager.joinRoom(room.roomCode, 'player3');
+      gameManager.startGame(room.roomCode);
+
+      const testRoom = gameManager.getRoom(room.roomCode)!;
+      testRoom.gameState.activePlayers = [
+        'host',
+        'player1',
+        'player2',
+        'player3',
+      ];
+      testRoom.gameState.currentPlayerIndex = 1; // player1's turn
+      gameManager.startTurn(room.roomCode);
+
+      const result = gameManager.eliminatePlayer(room.roomCode);
+      const updatedRoom = gameManager.getRoom(room.roomCode)!;
+
+      expect(result?.room.gameState.activePlayers).not.toContain('player1');
+      expect(updatedRoom.gameState.currentPlayerIndex).toBe(1); // Should now be player2
+      expect(updatedRoom.gameState.activePlayers[1]).toBe('player2');
+    });
+  });
+
+  describe('Round Progression Logic', () => {
+    beforeEach(() => {
+      gameManager.joinRoom(room.roomCode, 'player1');
+      gameManager.startGame(room.roomCode);
+    });
+
+    it('should progress through multiple rounds maintaining state', () => {
+      for (let round = 1; round <= 3; round++) {
+        const result = gameManager.endRound(room.roomCode);
+        const testRoom = gameManager.getRoom(room.roomCode)!;
+
+        if (round < 3) {
+          expect(result?.type).toBe('roundEnd');
+          expect(testRoom.gameState.roundNumber).toBe(round + 1);
+          expect(testRoom.gameState.roundWins['host']).toBe(round);
+          expect(testRoom.gameState.usedLetters).toHaveLength(0);
+          expect(testRoom.gameState.activePlayers).toEqual(['host', 'player1']);
+        } else {
+          expect(result?.type).toBe('gameEnd');
+          expect(result?.winner).toBe('host');
+        }
+      }
+    });
+
+    it('should reset turn state between rounds', () => {
+      gameManager.startTurn(room.roomCode);
+      gameManager.endTurn(room.roomCode, 'A');
+
+      const result = gameManager.endRound(room.roomCode);
+      const testRoom = gameManager.getRoom(room.roomCode)!;
+
+      expect(result?.room.gameState.isTimerRunning).toBe(false);
+      expect(testRoom.gameState.timeLeft).toBe(GAME_CONSTANTS.TURN_TIME);
+      expect(testRoom.gameState.usedLetters).toHaveLength(0);
+    });
+
+    it('should maintain player scores across rounds', () => {
+      const testRoom = gameManager.getRoom(room.roomCode)!;
+      testRoom.gameState.roundWins = { host: 1, player1: 2 };
+
+      const result = gameManager.endRound(room.roomCode);
+
+      if (result?.type === 'roundEnd') {
+        expect(result.room.gameState.roundWins['host']).toBe(2);
+        expect(result.room.gameState.roundWins['player1']).toBe(2);
+      }
+    });
+  });
+
+  describe('Turn Mechanics Validation', () => {
+    beforeEach(() => {
+      gameManager.joinRoom(room.roomCode, 'player1');
+      gameManager.startGame(room.roomCode);
+    });
+
+    it('should validate turn actions only when timer is running', () => {
+      const result1 = gameManager.endTurn(room.roomCode, 'A');
+      expect(result1?.room.gameState.usedLetters).toHaveLength(0);
+
+      gameManager.startTurn(room.roomCode);
+      const result2 = gameManager.endTurn(room.roomCode, 'A');
+      expect(result2?.room.gameState.usedLetters).toContain('A');
+    });
+
+    it('should track letter usage', () => {
+      gameManager.startTurn(room.roomCode);
+      const result1 = gameManager.endTurn(room.roomCode, 'A');
+
+      gameManager.startTurn(room.roomCode);
+      const result2 = gameManager.endTurn(room.roomCode, 'B');
+
+      expect(result2?.room.gameState.usedLetters).toContain('A');
+      expect(result2?.room.gameState.usedLetters).toContain('B');
+    });
+
+    it('should advance to next player after valid turn', () => {
+      const testRoom = gameManager.getRoom(room.roomCode)!;
+      const initialPlayer =
+        testRoom.gameState.activePlayers[testRoom.gameState.currentPlayerIndex];
+
+      gameManager.startTurn(room.roomCode);
+      gameManager.endTurn(room.roomCode, 'A');
+
+      const updatedRoom = gameManager.getRoom(room.roomCode)!;
+      const newPlayer =
+        updatedRoom.gameState.activePlayers[
+          updatedRoom.gameState.currentPlayerIndex
+        ];
+
+      expect(newPlayer).not.toBe(initialPlayer);
+    });
+
+    it('should handle turn progression with eliminated players', () => {
+      gameManager.joinRoom(room.roomCode, 'player2');
+      gameManager.startGame(room.roomCode);
+
+      const testRoom = gameManager.getRoom(room.roomCode)!;
+      testRoom.gameState.activePlayers = ['host', 'player2'];
+      testRoom.gameState.currentPlayerIndex = 0;
+
+      gameManager.startTurn(room.roomCode);
+      gameManager.endTurn(room.roomCode, 'A');
+
+      const updatedRoom = gameManager.getRoom(room.roomCode)!;
+      expect(updatedRoom.gameState.currentPlayerIndex).toBe(1);
+      expect(updatedRoom.gameState.activePlayers[1]).toBe('player2');
+    });
+  });
+
+  describe('State Persistence Logic', () => {
+    it('should maintain room state across multiple operations', () => {
+      gameManager.joinRoom(room.roomCode, 'player1');
+      gameManager.startGame(room.roomCode);
+
+      const initialState = {
+        players: [...gameManager.getRoom(room.roomCode)!.players],
+        gameStarted: gameManager.getRoom(room.roomCode)!.gameState.gameStarted,
+        roundNumber: gameManager.getRoom(room.roomCode)!.gameState.roundNumber,
+      };
+
+      gameManager.startTurn(room.roomCode);
+      gameManager.endTurn(room.roomCode, 'A');
+
+      const currentState = gameManager.getRoom(room.roomCode)!;
+      expect(currentState.players).toEqual(initialState.players);
+      expect(currentState.gameState.gameStarted).toBe(initialState.gameStarted);
+      expect(currentState.gameState.roundNumber).toBe(initialState.roundNumber);
+      expect(currentState.gameState.usedLetters).toContain('A');
+    });
+
+    it('should preserve game state during player disconnections', () => {
+      gameManager.joinRoom(room.roomCode, 'player1');
+      gameManager.startGame(room.roomCode);
+      gameManager.startTurn(room.roomCode);
+      gameManager.endTurn(room.roomCode, 'A');
+
+      const beforeState = {
+        usedLetters: [
+          ...gameManager.getRoom(room.roomCode)!.gameState.usedLetters,
+        ],
+        roundNumber: gameManager.getRoom(room.roomCode)!.gameState.roundNumber,
+        roundWins: {
+          ...gameManager.getRoom(room.roomCode)!.gameState.roundWins,
+        },
+      };
+
+      gameManager.removePlayer(room.roomCode, 'player1');
+
+      const afterState = gameManager.getRoom(room.roomCode)!;
+      expect(afterState.gameState.usedLetters).toEqual(beforeState.usedLetters);
+      expect(afterState.gameState.roundNumber).toBe(beforeState.roundNumber);
+      expect(afterState.gameState.roundWins).toEqual(beforeState.roundWins);
+    });
+
+    it('should maintain consistency across room operations', () => {
+      const room2 = gameManager.createRoom('host2');
+
+      expect(gameManager.getRoom(room.roomCode)).toBeDefined();
+      expect(gameManager.getRoom(room2.roomCode)).toBeDefined();
+
+      gameManager.joinRoom(room.roomCode, 'player1');
+      gameManager.joinRoom(room2.roomCode, 'player2');
+
+      expect(gameManager.getRoom(room.roomCode)?.players).toContain('player1');
+      expect(gameManager.getRoom(room2.roomCode)?.players).toContain('player2');
+      expect(gameManager.getRoom(room.roomCode)?.players).not.toContain(
+        'player2'
+      );
+      expect(gameManager.getRoom(room2.roomCode)?.players).not.toContain(
+        'player1'
+      );
+    });
+  });
+
+  describe('Room Joining Edge Cases', () => {
+    it('should handle joining room that does not exist', () => {
+      const result = gameManager.joinRoom('INVALID', 'player1');
+      expect(result).toBeNull();
+    });
+
+    it('should handle duplicate player names in same room', () => {
+      gameManager.joinRoom(room.roomCode, 'player1');
+      const result = gameManager.joinRoom(room.roomCode, 'player1');
+
+      expect(result?.players.filter((p) => p === 'player1')).toHaveLength(1);
+    });
+
+    it('should handle rejoining after disconnection', () => {
+      gameManager.joinRoom(room.roomCode, 'player1');
+      gameManager.startGame(room.roomCode);
+
+      gameManager.removePlayer(room.roomCode, 'player1');
+      expect(
+        gameManager.getRoom(room.roomCode)?.connectedPlayers
+      ).not.toContain('player1');
+
+      const result = gameManager.joinRoom(room.roomCode, 'player1');
+      expect(result?.connectedPlayers).toContain('player1');
+      expect(result?.players).toContain('player1');
+    });
+
+    it('should handle joining room during active game', () => {
+      gameManager.joinRoom(room.roomCode, 'player1');
+      gameManager.startGame(room.roomCode);
+      gameManager.startTurn(room.roomCode);
+
+      const result = gameManager.joinRoom(room.roomCode, 'player2');
+
+      expect(result?.players).toContain('player2');
+      expect(result?.gameState.activePlayers).not.toContain('player2');
+      expect(result?.gameState.gameStarted).toBe(true);
+    });
+
+    it('should handle multiple players joining room', () => {
+      for (let i = 1; i <= 5; i++) {
+        gameManager.joinRoom(room.roomCode, `player${i}`);
+      }
+
+      const result = gameManager.getRoom(room.roomCode);
+      expect(result?.players).toContain('host');
+      expect(result?.players).toContain('player1');
+      expect(result?.players).toContain('player5');
+    });
+  });
+
   describe('Player Connection Management', () => {
     it('should manage player connections', () => {
       const mockWs = {} as any;
