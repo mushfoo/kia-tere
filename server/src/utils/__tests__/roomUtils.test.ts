@@ -53,6 +53,7 @@ describe('Room Utilities', () => {
       expect(state.gameStarted).toBe(false);
       expect(state.difficulty).toBe('easy');
       expect(state.usedLetters).toEqual([]);
+      expect(state.usedCategories).toEqual([]);
     });
 
     it('should create a deep copy of players array', () => {
@@ -145,8 +146,14 @@ describe('Room Utilities', () => {
       for (let i = 0; i < 100; i++) {
         categories.add(getRandomCategory());
       }
-      // With 22 categories and 100 tries, we should get at least 10 different ones
+      // With 27 categories and 100 tries, we should get at least 10 different ones
       expect(categories.size).toBeGreaterThan(10);
+    });
+
+    it('should not return used categories', () => {
+      const used = CATEGORIES.slice(0, 5);
+      const category = getRandomCategory(used);
+      expect(used).not.toContain(category);
     });
   });
 });

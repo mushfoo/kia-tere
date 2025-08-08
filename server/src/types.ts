@@ -18,6 +18,7 @@ export interface GameState {
   roundWins: Record<string, number>;
   currentCategory: string;
   usedLetters: string[];
+  usedCategories: string[];
   timeLeft: number;
   isTimerRunning: boolean;
   roundActive: boolean;

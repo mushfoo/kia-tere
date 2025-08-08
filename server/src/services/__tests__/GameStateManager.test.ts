@@ -117,6 +117,12 @@ describe('GameStateManager', () => {
           .currentCategory;
         const updatedRoom = gameManager.refreshCategory(room.roomCode);
         expect(updatedRoom?.gameState.currentCategory).not.toBe(initial);
+        expect(updatedRoom?.gameState.usedCategories).toHaveLength(1);
+        expect(
+          updatedRoom?.gameState.usedCategories.includes(
+            updatedRoom.gameState.currentCategory
+          )
+        ).toBe(true);
       });
 
       it('should not refresh category after letters are used', () => {
@@ -124,6 +130,18 @@ describe('GameStateManager', () => {
         testRoom.gameState.usedLetters.push('A');
         const updatedRoom = gameManager.refreshCategory(room.roomCode);
         expect(updatedRoom).toBeNull();
+      });
+
+      it('should not repeat categories across rounds', () => {
+        const seen = new Set<string>();
+        for (let i = 0; i < 3; i++) {
+          const current = gameManager.getRoom(room.roomCode)!.gameState
+            .currentCategory;
+          expect(seen.has(current)).toBe(false);
+          seen.add(current);
+          const result = gameManager.endRound(room.roomCode);
+          if (result?.type === 'gameEnd') break;
+        }
       });
     });
 
