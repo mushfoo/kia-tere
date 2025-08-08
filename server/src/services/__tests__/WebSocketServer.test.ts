@@ -121,6 +121,29 @@ describe('WebSocketServer', () => {
       server.handleMessage(mockWs as any, startMessage);
     });
 
+    it('should include roundWins when player joins mid-game', () => {
+      const lateWs = new MockWebSocket();
+      lateWs.readyState = 1;
+      const joinLateMessage: WebSocketMessage = {
+        type: 'JOIN_ROOM',
+        roomCode,
+        playerName: 'player2',
+      };
+      server.handleMessage(lateWs as any, joinLateMessage);
+
+      const hostMsg = mockWs.messages[mockWs.messages.length - 1];
+      expect(hostMsg.type).toBe('PLAYER_JOINED');
+      expect(hostMsg.roundWins['player2']).toBe(0);
+
+      const player1Msg = joinWs.messages[joinWs.messages.length - 1];
+      expect(player1Msg.type).toBe('PLAYER_JOINED');
+      expect(player1Msg.roundWins['player2']).toBe(0);
+
+      const gsMsg = lateWs.messages.find((m) => m.type === 'GAME_STARTED');
+      expect(gsMsg).toBeDefined();
+      expect(gsMsg?.gameState.roundWins['player2']).toBe(0);
+    });
+
     it('should handle START_TURN message', () => {
       const startTurnMessage: WebSocketMessage = {
         type: 'START_TURN',
@@ -325,6 +348,17 @@ describe('WebSocketServer', () => {
       expect(room?.gameState.gameStarted).toBe(true);
       expect(room?.connectedPlayers).not.toContain('player1');
       expect(room?.players).toContain('player1'); // Still in player list
+    });
+
+    it('should remove player when they leave the room', () => {
+      const leaveMessage: WebSocketMessage = {
+        type: 'LEAVE_ROOM',
+      };
+      server.handleMessage(joinWs as any, leaveMessage);
+
+      const room = server.getRoom(roomCode);
+      expect(room?.players).not.toContain('player1');
+      expect(room?.connectedPlayers).not.toContain('player1');
     });
 
     it('should handle reconnection with preserved game state', () => {

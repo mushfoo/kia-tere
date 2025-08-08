@@ -49,9 +49,35 @@ export class GameStateManager {
       // New player joining
       room.players.push(playerName);
       room.connectedPlayers.push(playerName);
+      if (room.gameState.gameStarted) {
+        if (!room.gameState.players.includes(playerName)) {
+          room.gameState.players.push(playerName);
+        }
+        if (!room.gameState.roundWins[playerName]) {
+          room.gameState.roundWins[playerName] = 0;
+        }
+      }
     }
 
     room.lastActivity = Date.now();
+    return room;
+  }
+
+  disconnectPlayer(roomCode: string, playerName: string): Room | null {
+    const room = this.rooms.get(roomCode);
+    if (!room) return null;
+
+    // Remove from connected players only
+    room.connectedPlayers = room.connectedPlayers.filter(
+      (p) => p !== playerName
+    );
+    room.lastActivity = Date.now();
+
+    // If no players connected, mark for cleanup (but don't delete immediately)
+    if (room.connectedPlayers.length === 0) {
+      room.emptyAt = Date.now();
+    }
+
     return room;
   }
 
@@ -59,13 +85,13 @@ export class GameStateManager {
     const room = this.rooms.get(roomCode);
     if (!room) return null;
 
-    // Remove from connected players
+    // Remove from both player lists
+    room.players = room.players.filter((p) => p !== playerName);
     room.connectedPlayers = room.connectedPlayers.filter(
       (p) => p !== playerName
     );
     room.lastActivity = Date.now();
 
-    // If no players connected, mark for cleanup (but don't delete immediately)
     if (room.connectedPlayers.length === 0) {
       room.emptyAt = Date.now();
     }
