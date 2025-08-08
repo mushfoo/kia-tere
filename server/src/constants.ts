@@ -71,7 +71,6 @@ export const CATEGORIES = [
   'Superheroes',
   'Pizza Toppings',
   'Things in Space',
-  'Board Game Mechanics',
   'Modes of Transportation',
   'Desserts',
   'Languages',

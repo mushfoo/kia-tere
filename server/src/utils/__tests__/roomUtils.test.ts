@@ -146,7 +146,7 @@ describe('Room Utilities', () => {
       for (let i = 0; i < 100; i++) {
         categories.add(getRandomCategory());
       }
-      // With 27 categories and 100 tries, we should get at least 10 different ones
+      // With 26 categories and 100 tries, we should get at least 10 different ones
       expect(categories.size).toBeGreaterThan(10);
     });
 
