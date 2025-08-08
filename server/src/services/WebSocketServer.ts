@@ -118,6 +118,10 @@ export class WebSocketServer {
 
       case 'LEAVE_ROOM':
         this.handleLeaveRoom(ws);
+
+      case 'REFRESH_CATEGORY':
+        this.handleRefreshCategory(ws, message);
+
         break;
 
       default:
@@ -417,6 +421,25 @@ export class WebSocketServer {
     console.log(
       `Difficulty changed to ${message.difficulty} in room: ${ws.roomCode}`
     );
+  }
+
+  private handleRefreshCategory(
+    ws: ExtendedWebSocket,
+    message: WebSocketMessage
+  ): void {
+    const room = this.gameManager.getRoom(ws.roomCode!);
+    if (!room || room.host !== ws.playerName) {
+      this.sendError(ws, 'Not authorized to refresh category');
+      return;
+    }
+
+    const updatedRoom = this.gameManager.refreshCategory(ws.roomCode!);
+    if (!updatedRoom) return;
+
+    this.broadcastToRoom(ws.roomCode!, {
+      type: 'GAME_STATE_UPDATE',
+      gameState: updatedRoom.gameState,
+    });
   }
 
   public handleDisconnection(ws: ExtendedWebSocket): void {

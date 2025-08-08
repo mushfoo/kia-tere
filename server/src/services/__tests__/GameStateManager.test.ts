@@ -121,6 +121,22 @@ describe('GameStateManager', () => {
       });
     });
 
+    describe('Category Management', () => {
+      it('should refresh category when no letters are used', () => {
+        const initial = gameManager.getRoom(room.roomCode)!.gameState
+          .currentCategory;
+        const updatedRoom = gameManager.refreshCategory(room.roomCode);
+        expect(updatedRoom?.gameState.currentCategory).not.toBe(initial);
+      });
+
+      it('should not refresh category after letters are used', () => {
+        const testRoom = gameManager.getRoom(room.roomCode)!;
+        testRoom.gameState.usedLetters.push('A');
+        const updatedRoom = gameManager.refreshCategory(room.roomCode);
+        expect(updatedRoom).toBeNull();
+      });
+    });
+
     describe('Overtime Rounds', () => {
       beforeEach(() => {
         // Add a third player for more complex scenarios

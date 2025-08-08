@@ -152,6 +152,7 @@ const KiaTereGame: React.FC = () => {
           setActivePlayers(message.gameState.activePlayers);
           setCurrentPlayerIndex(message.gameState.currentPlayerIndex);
           setUsedLetters(new Set(message.gameState.usedLetters));
+          setCurrentCategory(message.gameState.currentCategory);
           setTimeLeft(message.gameState.timeLeft);
           setIsTimerRunning(message.gameState.isTimerRunning);
           setIsOvertimeRound(message.gameState.isOvertimeRound || false);
@@ -297,6 +298,11 @@ const KiaTereGame: React.FC = () => {
       type: 'END_TURN',
       selectedLetter,
     });
+  };
+
+  const refreshCategory = (): void => {
+    if (!isHost) return;
+    sendMessage({ type: 'REFRESH_CATEGORY' });
   };
 
   const resetGame = (): void => {
@@ -690,9 +696,19 @@ const KiaTereGame: React.FC = () => {
                   </p>
                 </div>
               )}
-              <h2 className="text-xl font-bold text-slate-800 mb-2">
-                Category
-              </h2>
+              <div className="flex items-center gap-2 mb-2">
+                <h2 className="text-xl font-bold text-slate-800">Category</h2>
+                {isHost && (
+                  <button
+                    onClick={refreshCategory}
+                    disabled={usedLetters.size > 0 || isTimerRunning}
+                    className="p-1 rounded hover:text-teal-600 disabled:text-slate-400"
+                    title="Refresh category"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
               <p
                 className={`text-2xl font-bold px-4 py-2 rounded-lg inline-block ${
                   isOvertimeRound

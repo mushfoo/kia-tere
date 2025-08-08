@@ -224,6 +224,16 @@ export class GameStateManager {
     return room;
   }
 
+  refreshCategory(roomCode: string): Room | null {
+    const room = this.rooms.get(roomCode);
+    if (!room) return null;
+    if (room.gameState.usedLetters.length > 0) {
+      return null;
+    }
+    room.gameState.currentCategory = getRandomCategory();
+    return room;
+  }
+
   startTurn(roomCode: string): Room | null {
     const room = this.rooms.get(roomCode);
     if (!room) return null;
