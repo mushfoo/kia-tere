@@ -301,6 +301,17 @@ describe('WebSocketServer', () => {
       expect(room?.players).toContain('player1'); // Still in player list
     });
 
+    it('should remove player when they leave the room', () => {
+      const leaveMessage: WebSocketMessage = {
+        type: 'LEAVE_ROOM',
+      };
+      server.handleMessage(joinWs as any, leaveMessage);
+
+      const room = server.getRoom(roomCode);
+      expect(room?.players).not.toContain('player1');
+      expect(room?.connectedPlayers).not.toContain('player1');
+    });
+
     it('should handle reconnection with preserved game state', () => {
       // Start game and make a move
       const startMessage: WebSocketMessage = {

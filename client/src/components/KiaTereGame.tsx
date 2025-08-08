@@ -124,6 +124,11 @@ const KiaTereGame: React.FC = () => {
           setConnectedPlayers(message.connectedPlayers);
           break;
 
+        case 'PLAYER_DISCONNECTED':
+          setPlayers(message.players);
+          setConnectedPlayers(message.connectedPlayers);
+          break;
+
         case 'GAME_STARTED':
           setGameState('playing');
           setPlayers(message.gameState.players);
@@ -207,7 +212,7 @@ const KiaTereGame: React.FC = () => {
     []
   );
 
-  const { connectionStatus, sendMessage, connect } = useWebSocket({
+  const { connectionStatus, sendMessage, connect, disconnect } = useWebSocket({
     roomCode,
     playerName,
     onMessage: handleWebSocketMessage,
@@ -295,6 +300,7 @@ const KiaTereGame: React.FC = () => {
   };
 
   const resetGame = (): void => {
+    disconnect();
     setGameState('menu');
     setIsHost(false);
     setRoomCode('');

@@ -55,17 +55,35 @@ export class GameStateManager {
     return room;
   }
 
-  removePlayer(roomCode: string, playerName: string): Room | null {
+  disconnectPlayer(roomCode: string, playerName: string): Room | null {
     const room = this.rooms.get(roomCode);
     if (!room) return null;
 
-    // Remove from connected players
+    // Remove from connected players only
     room.connectedPlayers = room.connectedPlayers.filter(
       (p) => p !== playerName
     );
     room.lastActivity = Date.now();
 
     // If no players connected, mark for cleanup (but don't delete immediately)
+    if (room.connectedPlayers.length === 0) {
+      room.emptyAt = Date.now();
+    }
+
+    return room;
+  }
+
+  removePlayer(roomCode: string, playerName: string): Room | null {
+    const room = this.rooms.get(roomCode);
+    if (!room) return null;
+
+    // Remove from both player lists
+    room.players = room.players.filter((p) => p !== playerName);
+    room.connectedPlayers = room.connectedPlayers.filter(
+      (p) => p !== playerName
+    );
+    room.lastActivity = Date.now();
+
     if (room.connectedPlayers.length === 0) {
       room.emptyAt = Date.now();
     }
