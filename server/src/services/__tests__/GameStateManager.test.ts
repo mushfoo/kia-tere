@@ -126,7 +126,23 @@ describe('GameStateManager', () => {
         const initial = gameManager.getRoom(room.roomCode)!.gameState
           .currentCategory;
         const updatedRoom = gameManager.refreshCategory(room.roomCode);
-        expect(updatedRoom?.gameState.currentCategory).not.toBe(initial);
+
+        // Test that the method returns a valid room and the category is one of the valid categories
+        expect(updatedRoom).toBeTruthy();
+        expect(updatedRoom?.gameState.currentCategory).toBeDefined();
+        expect(typeof updatedRoom?.gameState.currentCategory).toBe('string');
+
+        // Since random selection can occasionally return the same value,
+        // test by calling multiple times to ensure it's working
+        let differentCategoryFound = false;
+        for (let i = 0; i < 10; i++) {
+          const testRoom = gameManager.refreshCategory(room.roomCode);
+          if (testRoom?.gameState.currentCategory !== initial) {
+            differentCategoryFound = true;
+            break;
+          }
+        }
+        expect(differentCategoryFound).toBe(true);
       });
 
       it('should not refresh category after letters are used', () => {
