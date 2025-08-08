@@ -118,10 +118,10 @@ export class WebSocketServer {
 
       case 'LEAVE_ROOM':
         this.handleLeaveRoom(ws);
+        break;
 
       case 'REFRESH_CATEGORY':
         this.handleRefreshCategory(ws, message);
-
         break;
 
       default:
