@@ -4,7 +4,7 @@ import {
   EliminationResult,
   Difficulty,
 } from '../types';
-import { GAME_CONSTANTS, LETTER_SETS } from '../constants';
+import { GAME_CONSTANTS, LETTER_SETS, CATEGORIES } from '../constants';
 import {
   generateRoomCode,
   createInitialGameState,
@@ -191,6 +191,15 @@ export class GameStateManager {
     return allLettersUsed && room.gameState.activePlayers.length > 1;
   }
 
+  private selectCategory(room: Room): string {
+    if (room.gameState.usedCategories.length >= CATEGORIES.length) {
+      room.gameState.usedCategories = [];
+    }
+    const category = getRandomCategory(room.gameState.usedCategories);
+    room.gameState.usedCategories.push(category);
+    return category;
+  }
+
   // Game state management
   startGame(roomCode: string, difficulty: Difficulty = 'easy'): Room | null {
     const room = this.rooms.get(roomCode);
@@ -200,7 +209,7 @@ export class GameStateManager {
     room.gameState = createInitialGameState(room.players);
     room.gameState.gameStarted = true;
     room.gameState.roundActive = true;
-    room.gameState.currentCategory = getRandomCategory();
+    room.gameState.currentCategory = this.selectCategory(room);
     room.gameState.difficulty = difficulty;
 
     return room;
@@ -212,7 +221,10 @@ export class GameStateManager {
     if (room.gameState.usedLetters.length > 0) {
       return null;
     }
-    room.gameState.currentCategory = getRandomCategory();
+    room.gameState.usedCategories = room.gameState.usedCategories.filter(
+      (c) => c !== room.gameState.currentCategory
+    );
+    room.gameState.currentCategory = this.selectCategory(room);
     return room;
   }
 
@@ -341,7 +353,7 @@ export class GameStateManager {
     room.gameState.timeLeft = GAME_CONSTANTS.TURN_TIME;
     room.gameState.isTimerRunning = false; // Timer not running yet - player needs to start turn
     room.gameState.roundActive = true; // Keep this TRUE for new round
-    room.gameState.currentCategory = getRandomCategory();
+    room.gameState.currentCategory = this.selectCategory(room);
 
     // Reset overtime state for new round
     room.gameState.isOvertimeRound = false;
@@ -374,7 +386,7 @@ export class GameStateManager {
     room.gameState.usedLetters = [];
 
     // Get new category for overtime round
-    room.gameState.currentCategory = getRandomCategory();
+    room.gameState.currentCategory = this.selectCategory(room);
 
     // Reset timer and start with first player
     room.gameState.currentPlayerIndex = 0;

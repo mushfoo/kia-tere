@@ -28,6 +28,7 @@ export function createInitialGameState(players: string[]): GameState {
     roundWins,
     currentCategory: '',
     usedLetters: [],
+    usedCategories: [],
     timeLeft: GAME_CONSTANTS.TURN_TIME,
     isTimerRunning: false,
     roundActive: false,
@@ -52,8 +53,14 @@ export function shouldCleanupRoom(room: Room): boolean {
 }
 
 /**
- * Returns a random category from the predefined list of categories.
+ * Returns a random category from the predefined list of categories,
+ * excluding any categories that have already been used. If all
+ * categories have been used, the full list is used again.
  */
-export function getRandomCategory(): string {
-  return CATEGORIES[Math.floor(Math.random() * CATEGORIES.length)];
+export function getRandomCategory(usedCategories: string[] = []): string {
+  const available = CATEGORIES.filter(
+    (category) => !usedCategories.includes(category)
+  );
+  const source = available.length > 0 ? available : CATEGORIES;
+  return source[Math.floor(Math.random() * source.length)];
 }

@@ -73,7 +73,11 @@ export const CATEGORIES = [
   'Superheroes',
   'Pizza Toppings',
   'Things in Space',
-  'Board Game Mechanics',
+  'Modes of Transportation',
+  'Desserts',
+  'Languages',
+  'Hobbies',
+  'Flowers',
 ] as const;
 
 const getWebSocketUrl = (): string => {

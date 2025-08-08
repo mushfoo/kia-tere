@@ -24,6 +24,7 @@ describe('KiaTereGame category refresh', () => {
     roundWins: { host: 0 },
     currentCategory: 'Animals',
     usedLetters: [],
+    usedCategories: [],
     timeLeft: 10,
     isTimerRunning: false,
     roundActive: true,
