@@ -85,6 +85,10 @@ const KiaTereGame: React.FC = () => {
   const [activePlayers, setActivePlayers] = useState<string[]>([]);
   const [roundNumber, setRoundNumber] = useState<number>(1);
   const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
+  const [currentSelectedLetter, setCurrentSelectedLetter] = useState<
+    string | null
+  >(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [copySuccess, setCopySuccess] = useState<boolean>(false);
   const [difficulty, setDifficulty] = useState<Difficulty>('easy');
   const [isCreatingRoom, setIsCreatingRoom] = useState<boolean>(false);
@@ -94,6 +98,11 @@ const KiaTereGame: React.FC = () => {
 
   // Letters arranged in a grid - now using difficulty-based sets
   const letters: readonly string[] = LETTER_SETS[difficulty];
+
+  const showToast = (msg: string): void => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3000);
+  };
 
   const handleWebSocketMessage = useCallback(
     (message: WebSocketMessage): void => {
@@ -141,6 +150,7 @@ const KiaTereGame: React.FC = () => {
           setOvertimeLevel(message.gameState.overtimeLevel || 0);
           setAnswersRequired(message.gameState.answersRequired || 1);
           setSelectedLetter(null);
+          setCurrentSelectedLetter(null);
           break;
 
         case 'GAME_STATE_UPDATE':
@@ -154,6 +164,7 @@ const KiaTereGame: React.FC = () => {
           setOvertimeLevel(message.gameState.overtimeLevel || 0);
           setAnswersRequired(message.gameState.answersRequired || 1);
           setSelectedLetter(null);
+          setCurrentSelectedLetter(null);
           break;
 
         case 'TIMER_UPDATE':
@@ -174,6 +185,7 @@ const KiaTereGame: React.FC = () => {
             setAnswersRequired(message.gameState.answersRequired);
           }
           setSelectedLetter(null);
+          setCurrentSelectedLetter(null);
           break;
 
         case 'ROUND_END':
@@ -193,11 +205,24 @@ const KiaTereGame: React.FC = () => {
           setRoundWins(message.roundWins);
           setRoundNumber(message.roundNumber);
           setSelectedLetter(null);
+          setCurrentSelectedLetter(null);
+          if (message.winner) {
+            showToast(`${message.winner} won the round`);
+          }
           break;
 
         case 'GAME_END':
           setGameState('gameOver');
           setRoundWins(message.roundWins);
+          setCurrentSelectedLetter(null);
+          break;
+
+        case 'PLAYER_ELIMINATED':
+          showToast(`${message.player} was eliminated`);
+          break;
+
+        case 'PLAYER_SELECTED_LETTER':
+          setCurrentSelectedLetter(message.letter);
           break;
 
         case 'ERROR':
@@ -277,6 +302,10 @@ const KiaTereGame: React.FC = () => {
     // Toggle letter selection
     const newSelectedLetter = selectedLetter === letter ? null : letter;
     setSelectedLetter(newSelectedLetter);
+    sendMessage({
+      type: 'PLAYER_SELECTED_LETTER',
+      letter: newSelectedLetter,
+    });
   };
 
   const startTurn = (): void => {
@@ -311,6 +340,8 @@ const KiaTereGame: React.FC = () => {
     setRoundWins({});
     setUsedLetters(new Set());
     setSelectedLetter(null);
+    setCurrentSelectedLetter(null);
+    setToastMessage(null);
     setTimeLeft(10);
     setIsTimerRunning(false);
     setRoundActive(false);
@@ -630,6 +661,11 @@ const KiaTereGame: React.FC = () => {
   // Playing Game
   return (
     <div className="min-h-screen bg-slate-50 p-4" data-testid="game-playing">
+      {toastMessage && (
+        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-4 py-2 rounded shadow">
+          {toastMessage}
+        </div>
+      )}
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="bg-white rounded-2xl shadow-lg border p-6 mb-6">
@@ -757,6 +793,17 @@ const KiaTereGame: React.FC = () => {
                       Selected:{' '}
                       <span className="font-bold text-lg">
                         {selectedLetter}
+                      </span>
+                    </p>
+                  </div>
+                )}
+
+                {!isMyTurn && currentSelectedLetter && (
+                  <div className="mt-3 p-2 bg-teal-100 rounded-lg">
+                    <p className="text-sm text-teal-800">
+                      Selected:{' '}
+                      <span className="font-bold text-lg">
+                        {currentSelectedLetter}
                       </span>
                     </p>
                   </div>

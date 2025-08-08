@@ -136,6 +136,13 @@ export class GameStateManager {
     roomCode: string,
     result: EliminationResult
   ): void {
+    if (result.eliminatedPlayer) {
+      this.broadcastToRoom(roomCode, {
+        type: 'PLAYER_ELIMINATED',
+        player: result.eliminatedPlayer,
+      });
+    }
+
     switch (result.type) {
       case 'continue':
         this.broadcastToRoom(roomCode, {
@@ -164,6 +171,7 @@ export class GameStateManager {
           gameState: result.room.gameState, // Include full game state
           roundWins: result.room.gameState.roundWins,
           roundNumber: result.room.gameState.roundNumber,
+          winner: result.winner,
         });
         break;
 
@@ -294,12 +302,16 @@ export class GameStateManager {
 
     // Check if round is over
     if (room.gameState.activePlayers.length === 1) {
-      return this.endRound(roomCode);
+      const result = this.endRound(roomCode);
+      if (result) result.eliminatedPlayer = currentPlayer;
+      return result;
     }
 
     // Check for overtime condition: all letters used and multiple players remaining
     if (this.shouldTriggerOvertime(room)) {
-      return this.startOvertimeRound(roomCode);
+      const result = this.startOvertimeRound(roomCode);
+      if (result) result.eliminatedPlayer = currentPlayer;
+      return result;
     }
 
     // Adjust current player index
@@ -313,7 +325,7 @@ export class GameStateManager {
     room.gameState.timeLeft = GAME_CONSTANTS.TURN_TIME;
     room.gameState.isTimerRunning = true;
 
-    return { type: 'continue', room };
+    return { type: 'continue', room, eliminatedPlayer: currentPlayer };
   }
 
   endRound(roomCode: string): EliminationResult | null {
@@ -360,7 +372,7 @@ export class GameStateManager {
     room.gameState.overtimeLevel = 0;
     room.gameState.answersRequired = 1;
 
-    return { type: 'roundEnd', room };
+    return { type: 'roundEnd', room, winner };
   }
 
   /**
