@@ -14,6 +14,8 @@ describe('Lobby', () => {
     copySuccess: false,
     onDifficultyChange: jest.fn(),
     difficulty: 'easy' as Difficulty,
+    turnTime: 10,
+    onTurnTimeChange: jest.fn(),
   };
 
   beforeEach(() => {
@@ -64,11 +66,27 @@ describe('Lobby', () => {
     expect(mockProps.onDifficultyChange).toHaveBeenCalledWith('hard');
   });
 
+  it('handles turn time change when host', () => {
+    render(<Lobby {...mockProps} />);
+
+    const input = screen.getByLabelText('Turn Time (seconds)');
+    fireEvent.change(input, { target: { value: '15' } });
+
+    expect(mockProps.onTurnTimeChange).toHaveBeenCalledWith(15);
+  });
+
   it('disables difficulty select when not host', () => {
     render(<Lobby {...mockProps} isHost={false} />);
 
     const select = screen.getByLabelText('Difficulty');
     expect(select).toBeDisabled();
+  });
+
+  it('disables turn time input when not host', () => {
+    render(<Lobby {...mockProps} isHost={false} />);
+
+    const input = screen.getByLabelText('Turn Time (seconds)');
+    expect(input).toBeDisabled();
   });
 
   it('shows start game button only when host', () => {
@@ -150,6 +168,7 @@ describe('Lobby', () => {
         onStartGame: jest.fn(),
         onCopyCode: jest.fn(),
         onDifficultyChange: jest.fn(),
+        onTurnTimeChange: jest.fn(),
       };
 
       expect(() => render(<Lobby {...propsWithoutCallbacks} />)).not.toThrow();

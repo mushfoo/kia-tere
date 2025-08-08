@@ -2,6 +2,7 @@ import WebSocket from 'ws';
 import { createServer } from 'http';
 import { ExtendedWebSocket, WebSocketMessage } from '../types';
 import { GameStateManager } from './GameStateManager';
+import { GAME_CONSTANTS } from '../constants';
 
 export class WebSocketServer {
   private port?: number;
@@ -210,7 +211,15 @@ export class WebSocketServer {
     }
 
     const difficulty = message.difficulty || 'easy';
-    const updatedRoom = this.gameManager.startGame(ws.roomCode!, difficulty);
+    const turnTime =
+      typeof message.turnTime === 'number'
+        ? message.turnTime
+        : GAME_CONSTANTS.TURN_TIME;
+    const updatedRoom = this.gameManager.startGame(
+      ws.roomCode!,
+      difficulty,
+      turnTime
+    );
 
     if (!updatedRoom) {
       this.sendError(ws, 'Failed to start game');

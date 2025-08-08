@@ -201,12 +201,16 @@ export class GameStateManager {
   }
 
   // Game state management
-  startGame(roomCode: string, difficulty: Difficulty = 'easy'): Room | null {
+  startGame(
+    roomCode: string,
+    difficulty: Difficulty = 'easy',
+    turnTime: number = GAME_CONSTANTS.TURN_TIME
+  ): Room | null {
     const room = this.rooms.get(roomCode);
     if (!room) return null;
 
     // Initialize game state
-    room.gameState = createInitialGameState(room.players);
+    room.gameState = createInitialGameState(room.players, turnTime);
     room.gameState.gameStarted = true;
     room.gameState.roundActive = true;
     room.gameState.currentCategory = this.selectCategory(room);
@@ -233,7 +237,7 @@ export class GameStateManager {
     if (!room) return null;
 
     room.gameState.isTimerRunning = true;
-    room.gameState.timeLeft = GAME_CONSTANTS.TURN_TIME;
+    room.gameState.timeLeft = room.gameState.turnTime;
 
     // Start the server-side timer
     this.startServerTimer(roomCode);
@@ -266,7 +270,7 @@ export class GameStateManager {
       (room.gameState.currentPlayerIndex + 1) %
       room.gameState.activePlayers.length;
 
-    room.gameState.timeLeft = GAME_CONSTANTS.TURN_TIME;
+    room.gameState.timeLeft = room.gameState.turnTime;
     room.gameState.isTimerRunning = true;
 
     // Start timer for next player
@@ -310,7 +314,7 @@ export class GameStateManager {
     }
 
     // Continue with next player - fresh timer
-    room.gameState.timeLeft = GAME_CONSTANTS.TURN_TIME;
+    room.gameState.timeLeft = room.gameState.turnTime;
     room.gameState.isTimerRunning = true;
 
     return { type: 'continue', room };
@@ -350,7 +354,7 @@ export class GameStateManager {
     room.gameState.activePlayers = [...room.gameState.players];
     room.gameState.currentPlayerIndex = nextPlayerIndex; // Start with next player, not 0
     room.gameState.usedLetters = [];
-    room.gameState.timeLeft = GAME_CONSTANTS.TURN_TIME;
+    room.gameState.timeLeft = room.gameState.turnTime;
     room.gameState.isTimerRunning = false; // Timer not running yet - player needs to start turn
     room.gameState.roundActive = true; // Keep this TRUE for new round
     room.gameState.currentCategory = this.selectCategory(room);
@@ -390,7 +394,7 @@ export class GameStateManager {
 
     // Reset timer and start with first player
     room.gameState.currentPlayerIndex = 0;
-    room.gameState.timeLeft = GAME_CONSTANTS.TURN_TIME;
+    room.gameState.timeLeft = room.gameState.turnTime;
     room.gameState.isTimerRunning = false; // Player needs to start turn
 
     return { type: 'overtimeStart', room };
