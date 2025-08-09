@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Clock, Trophy } from 'lucide-react';
 import { GameBoardProps } from '../types';
 
@@ -14,6 +14,22 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   roundNumber,
   roundWins,
 }) => {
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent): void => {
+      const key = event.key.toUpperCase();
+      if (
+        letters.includes(key) &&
+        !usedLetters.has(key) &&
+        isCurrentPlayer &&
+        isTimerRunning
+      ) {
+        onLetterSelect(key);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [letters, usedLetters, isCurrentPlayer, isTimerRunning, onLetterSelect]);
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-4">
       <div className="w-full max-w-4xl bg-white rounded-lg shadow-md p-6">

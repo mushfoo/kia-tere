@@ -15,6 +15,7 @@ A fast-paced multiplayer word game where players race against time to find words
 - ⚡ **10-Second Turns** - Fast-paced gameplay keeps everyone engaged
 - 🏆 **Score Tracking** - First to win 3 rounds wins the game
 - 🎨 **Modern UI** - Clean, professional design with TypeScript
+- ⌨️ **Keyboard Controls** - Play using letter keys and Enter
 
 ## 🎮 How to Play
 
@@ -26,9 +27,9 @@ A fast-paced multiplayer word game where players race against time to find words
 ### Gameplay
 1. **Category Challenge**: Each round has a category (Animals, Foods, Countries, etc.)
 2. **Your Turn**: You have 10 seconds to find a word that fits the category
-3. **Select Letter**: Choose the starting letter of your word
+3. **Select Letter**: Choose the starting letter by clicking or typing it
 4. **Say Your Word**: Announce your word out loud to other players
-5. **End Turn**: Click "End Turn" to pass to the next player
+5. **End Turn**: Press Enter or click "End Turn" to pass to the next player
 6. **Elimination**: If time runs out, you're eliminated from the round
 
 ### Winning
