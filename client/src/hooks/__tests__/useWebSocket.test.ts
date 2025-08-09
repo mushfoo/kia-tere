@@ -113,4 +113,28 @@ describe('useWebSocket', () => {
     // Should attempt to reconnect (new instance created)
     expect(lastMockWebSocket.url).toBe(GAME_CONSTANTS.WS_URL);
   });
+
+  it('should send LEAVE_ROOM on disconnect', async () => {
+    const { result } = renderHook(() => useWebSocket(mockProps));
+
+    await act(async () => {
+      result.current.connect();
+    });
+    await act(async () => {
+      jest.runOnlyPendingTimers();
+    });
+
+    await act(async () => {
+      result.current.disconnect();
+    });
+
+    expect(lastMockWebSocket.send).toHaveBeenCalledWith(
+      JSON.stringify({
+        type: 'LEAVE_ROOM',
+        roomCode: mockProps.roomCode,
+        playerName: mockProps.playerName,
+      })
+    );
+    expect(lastMockWebSocket.close).toHaveBeenCalled();
+  });
 });

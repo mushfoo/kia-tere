@@ -37,6 +37,10 @@ A fast-paced multiplayer word game where players race against time to find words
 - **Fresh Start**: Eliminated players rejoin for each new round
 - **No Repeats**: Used letters can't be selected again in the same round
 
+### Disconnections vs Leaving
+- Losing connection keeps you in the room's player list so you can reconnect.
+- Clicking "Leave Room" removes you from the room for everyone.
+
 ## 🛠️ Development
 
 ### CI Pipeline
