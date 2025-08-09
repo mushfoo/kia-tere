@@ -301,34 +301,51 @@ const KiaTereGame: React.FC = () => {
     });
   };
 
-  const handleLetterSelect = (letter: string): void => {
-    if (!roundActive || usedLetters.has(letter) || !isTimerRunning) return;
-    if (activePlayers[currentPlayerIndex] !== playerName) return;
+  const handleLetterSelect = useCallback(
+    (letter: string): void => {
+      if (!roundActive || usedLetters.has(letter) || !isTimerRunning) return;
+      if (activePlayers[currentPlayerIndex] !== playerName) return;
 
-    // Toggle letter selection
-    const newSelectedLetter = selectedLetter === letter ? null : letter;
-    setSelectedLetter(newSelectedLetter);
-    sendMessage({
-      type: 'PLAYER_SELECTED_LETTER',
-      letter: newSelectedLetter,
-    });
-  };
+      const newSelectedLetter = selectedLetter === letter ? null : letter;
+      setSelectedLetter(newSelectedLetter);
+      sendMessage({
+        type: 'PLAYER_SELECTED_LETTER',
+        letter: newSelectedLetter,
+      });
+    },
+    [
+      roundActive,
+      usedLetters,
+      isTimerRunning,
+      activePlayers,
+      currentPlayerIndex,
+      playerName,
+      selectedLetter,
+      sendMessage,
+    ]
+  );
 
-  const startTurn = (): void => {
+  const startTurn = useCallback((): void => {
     if (activePlayers[currentPlayerIndex] !== playerName) return;
     sendMessage({
       type: 'START_TURN',
     });
-  };
+  }, [activePlayers, currentPlayerIndex, playerName, sendMessage]);
 
-  const endTurn = (): void => {
+  const endTurn = useCallback((): void => {
     if (!selectedLetter || activePlayers[currentPlayerIndex] !== playerName)
       return;
     sendMessage({
       type: 'END_TURN',
       selectedLetter,
     });
-  };
+  }, [
+    selectedLetter,
+    activePlayers,
+    currentPlayerIndex,
+    playerName,
+    sendMessage,
+  ]);
 
   const refreshCategory = (): void => {
     if (!isHost) return;
@@ -377,6 +394,40 @@ const KiaTereGame: React.FC = () => {
       setTimeout(() => setCopySuccess(false), 2000);
     }
   };
+
+  const currentPlayer =
+    activePlayers && activePlayers.length > 0
+      ? activePlayers[currentPlayerIndex] || activePlayers[0]
+      : players[0] || 'Unknown';
+  const isMyTurn = currentPlayer === playerName && currentPlayer !== 'Unknown';
+
+  useEffect(() => {
+    if (gameState !== 'playing') return;
+    const handleKeyDown = (event: KeyboardEvent): void => {
+      if (['INPUT', 'TEXTAREA'].includes((event.target as HTMLElement).tagName))
+        return;
+      const key = event.key.toUpperCase();
+      if (letters.includes(key)) {
+        handleLetterSelect(key);
+      } else if (event.key === 'Enter' && isMyTurn) {
+        if (roundActive) {
+          endTurn();
+        } else {
+          startTurn();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [
+    gameState,
+    letters,
+    handleLetterSelect,
+    isMyTurn,
+    roundActive,
+    startTurn,
+    endTurn,
+  ]);
 
   // Main Menu
   if (gameState === 'menu') {
@@ -677,12 +728,6 @@ const KiaTereGame: React.FC = () => {
     );
   }
 
-  const currentPlayer =
-    activePlayers && activePlayers.length > 0
-      ? activePlayers[currentPlayerIndex] || activePlayers[0]
-      : players[0] || 'Unknown';
-  const isMyTurn = currentPlayer === playerName && currentPlayer !== 'Unknown';
-
   // Playing Game
   return (
     <div className="min-h-screen bg-slate-50 p-4" data-testid="game-playing">
@@ -899,8 +944,8 @@ const KiaTereGame: React.FC = () => {
           {/* Instructions */}
           <div className="text-center mt-8 text-slate-600">
             <p className="mb-2">
-              1. Select/deselect letters to plan your word • 2. Say your word •
-              3. Click "End Turn"
+              1. Select/deselect letters with your keyboard or mouse • 2. Say
+              your word • 3. Press Enter or click "End Turn"
             </p>
             <p className="text-sm">
               {isMyTurn ? "It's your turn!" : `Waiting for ${currentPlayer}...`}{' '}
