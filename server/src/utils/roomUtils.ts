@@ -16,7 +16,10 @@ export function generateRoomCode(): string {
 /**
  * Creates the initial game state for a new game with the given players.
  */
-export function createInitialGameState(players: string[]): GameState {
+export function createInitialGameState(
+  players: string[],
+  turnTime: number = GAME_CONSTANTS.TURN_TIME
+): GameState {
   const roundWins: Record<string, number> = {};
   const playersCopy = [...players];
   playersCopy.forEach((player) => (roundWins[player] = 0));
@@ -29,7 +32,7 @@ export function createInitialGameState(players: string[]): GameState {
     currentCategory: '',
     usedLetters: [],
     usedCategories: [],
-    timeLeft: GAME_CONSTANTS.TURN_TIME,
+    timeLeft: turnTime,
     isTimerRunning: false,
     roundActive: false,
     roundNumber: 1,
@@ -38,6 +41,7 @@ export function createInitialGameState(players: string[]): GameState {
     isOvertimeRound: false,
     overtimeLevel: 0,
     answersRequired: 1,
+    turnTime,
   };
 }
 

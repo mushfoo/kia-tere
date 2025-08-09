@@ -28,6 +28,7 @@ export interface GameState {
   isOvertimeRound: boolean;
   overtimeLevel: number;
   answersRequired: number;
+  turnTime: number;
 }
 
 export interface WebSocketMessage {

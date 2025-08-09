@@ -25,6 +25,7 @@ export interface GameState {
   roundNumber: number;
   gameStarted: boolean;
   difficulty: Difficulty;
+  turnTime: number;
 }
 
 export interface WebSocketMessage {
