@@ -60,6 +60,14 @@ describe('GameBoard', () => {
     expect(mockProps.onLetterSelect).toHaveBeenCalledWith('C');
   });
 
+  it('handles letter selection via keyboard', () => {
+    render(<GameBoard {...mockProps} />);
+
+    fireEvent.keyDown(window, { key: 'c' });
+
+    expect(mockProps.onLetterSelect).toHaveBeenCalledWith('C');
+  });
+
   it('disables used letters', () => {
     render(<GameBoard {...mockProps} />);
 
