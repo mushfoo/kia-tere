@@ -20,6 +20,7 @@ export interface GameState {
   isOvertimeRound: boolean;
   overtimeLevel: number;
   answersRequired: number;
+  turnTime: number;
 }
 
 export interface WebSocketMessage {
@@ -58,6 +59,8 @@ export interface LobbyProps {
   copySuccess: boolean;
   onDifficultyChange: (difficulty: Difficulty) => void;
   difficulty: Difficulty;
+  turnTime: number;
+  onTurnTimeChange: (turnTime: number) => void;
 }
 
 export interface GameBoardProps {

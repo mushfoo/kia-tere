@@ -12,6 +12,8 @@ export const Lobby: React.FC<LobbyProps> = ({
   copySuccess,
   onDifficultyChange,
   difficulty,
+  turnTime,
+  onTurnTimeChange,
 }) => {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-4">
@@ -86,6 +88,24 @@ export const Lobby: React.FC<LobbyProps> = ({
                 <option value="easy">Easy (18 common letters)</option>
                 <option value="hard">Hard (All 26 letters)</option>
               </select>
+            </div>
+            <div>
+              <label
+                htmlFor="turnTime"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Turn Time (seconds)
+              </label>
+              <input
+                id="turnTime"
+                type="number"
+                min={5}
+                max={60}
+                value={turnTime}
+                onChange={(e) => onTurnTimeChange(Number(e.target.value))}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                disabled={!isHost}
+              />
             </div>
           </div>
         </div>
