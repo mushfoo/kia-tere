@@ -91,6 +91,7 @@ const KiaTereGame: React.FC = () => {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [copySuccess, setCopySuccess] = useState<boolean>(false);
   const [difficulty, setDifficulty] = useState<Difficulty>('easy');
+  const [turnTime, setTurnTime] = useState<number>(10);
   const [isCreatingRoom, setIsCreatingRoom] = useState<boolean>(false);
   const [isOvertimeRound, setIsOvertimeRound] = useState<boolean>(false);
   const [overtimeLevel, setOvertimeLevel] = useState<number>(0);
@@ -154,6 +155,7 @@ const KiaTereGame: React.FC = () => {
           setIsTimerRunning(message.gameState.isTimerRunning);
           setRoundActive(message.gameState.roundActive);
           setDifficulty(message.gameState.difficulty || 'easy');
+          setTurnTime(message.gameState.turnTime || 10);
           setIsOvertimeRound(message.gameState.isOvertimeRound || false);
           setOvertimeLevel(message.gameState.overtimeLevel || 0);
           setAnswersRequired(message.gameState.answersRequired || 1);
@@ -168,6 +170,7 @@ const KiaTereGame: React.FC = () => {
           setCurrentCategory(message.gameState.currentCategory);
           setTimeLeft(message.gameState.timeLeft);
           setIsTimerRunning(message.gameState.isTimerRunning);
+          setTurnTime(message.gameState.turnTime || turnTime);
           setIsOvertimeRound(message.gameState.isOvertimeRound || false);
           setOvertimeLevel(message.gameState.overtimeLevel || 0);
           setAnswersRequired(message.gameState.answersRequired || 1);
@@ -187,6 +190,7 @@ const KiaTereGame: React.FC = () => {
             setCurrentCategory(message.gameState.currentCategory);
             setTimeLeft(message.gameState.timeLeft);
             setIsTimerRunning(message.gameState.isTimerRunning);
+            setTurnTime(message.gameState.turnTime || turnTime);
             setRoundActive(message.gameState.roundActive);
             setIsOvertimeRound(message.gameState.isOvertimeRound);
             setOvertimeLevel(message.gameState.overtimeLevel);
@@ -204,6 +208,7 @@ const KiaTereGame: React.FC = () => {
             setCurrentCategory(message.gameState.currentCategory);
             setTimeLeft(message.gameState.timeLeft);
             setIsTimerRunning(message.gameState.isTimerRunning);
+            setTurnTime(message.gameState.turnTime || turnTime);
             setRoundActive(message.gameState.roundActive);
             setIsOvertimeRound(message.gameState.isOvertimeRound || false);
             setOvertimeLevel(message.gameState.overtimeLevel || 0);
@@ -238,7 +243,7 @@ const KiaTereGame: React.FC = () => {
           break;
       }
     },
-    []
+    [turnTime]
   );
 
   const { connectionStatus, sendMessage, connect, disconnect } = useWebSocket({
@@ -300,6 +305,7 @@ const KiaTereGame: React.FC = () => {
     sendMessage({
       type: 'START_GAME',
       difficulty,
+      turnTime,
     });
   };
 
@@ -357,6 +363,7 @@ const KiaTereGame: React.FC = () => {
     setActivePlayers([]);
     setRoundNumber(1);
     setDifficulty('easy');
+    setTurnTime(10);
     setIsOvertimeRound(false);
     setOvertimeLevel(0);
     setAnswersRequired(1);
@@ -581,6 +588,23 @@ const KiaTereGame: React.FC = () => {
                   </div>
                 </div>
 
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Turn Time (seconds)
+                  </label>
+                  <input
+                    type="number"
+                    min={5}
+                    max={60}
+                    value={turnTime}
+                    onChange={(e) => setTurnTime(Number(e.target.value))}
+                    className="w-full py-2 px-3 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  />
+                  <div className="mt-2 text-xs text-slate-600">
+                    5-60 seconds
+                  </div>
+                </div>
+
                 <button
                   onClick={startGame}
                   disabled={
@@ -604,6 +628,7 @@ const KiaTereGame: React.FC = () => {
                   <span className="font-semibold capitalize">{difficulty}</span>
                   ({LETTER_SETS[difficulty].length} letters)
                 </p>
+                <p className="text-sm text-slate-500">Turn Time: {turnTime}s</p>
               </div>
             )}
 
@@ -888,7 +913,7 @@ const KiaTereGame: React.FC = () => {
             </p>
             <p className="text-sm">
               {isMyTurn ? "It's your turn!" : `Waiting for ${currentPlayer}...`}{' '}
-              • 10 seconds per turn
+              • {turnTime} seconds per turn
             </p>
           </div>
 

@@ -234,6 +234,36 @@ describe('WebSocketServer', () => {
     });
   });
 
+  it('should start game with custom turn time', () => {
+    const createMessage: WebSocketMessage = {
+      type: 'CREATE_ROOM',
+      playerName: 'host',
+    };
+    server.handleMessage(mockWs as any, createMessage);
+    const customRoomCode = mockWs.messages[0].roomCode;
+
+    const joinMessage: WebSocketMessage = {
+      type: 'JOIN_ROOM',
+      roomCode: customRoomCode,
+      playerName: 'player1',
+    };
+    server.handleMessage(joinWs as any, joinMessage);
+
+    const startMessage: WebSocketMessage = {
+      type: 'START_GAME',
+      roomCode: customRoomCode,
+      playerName: 'host',
+      turnTime: 15,
+    };
+    server.handleMessage(mockWs as any, startMessage);
+
+    const gameStarted = mockWs.messages.find(
+      (msg) => msg.type === 'GAME_STARTED'
+    );
+    expect(gameStarted?.gameState.turnTime).toBe(15);
+    expect(gameStarted?.gameState.timeLeft).toBe(15);
+  });
+
   describe('Error Handling', () => {
     it('should handle missing required fields', () => {
       const invalidMessage: WebSocketMessage = {
