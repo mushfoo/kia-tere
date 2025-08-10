@@ -117,6 +117,10 @@ export class WebSocketServer {
         this.handleSetDifficulty(ws, message);
         break;
 
+      case 'PLAYER_SELECTED_LETTER':
+        this.handlePlayerSelectedLetter(ws, message);
+        break;
+
       case 'REFRESH_CATEGORY':
         this.handleRefreshCategory(ws, message);
         break;
@@ -304,6 +308,7 @@ export class WebSocketServer {
           gameState: result.room.gameState,
           roundWins: result.room.gameState.roundWins,
           roundNumber: result.room.gameState.roundNumber,
+          winner: result.winner,
         });
         break;
 
@@ -329,6 +334,13 @@ export class WebSocketServer {
 
     if (!result) return;
 
+    if (result.eliminatedPlayer) {
+      this.broadcastToRoom(ws.roomCode!, {
+        type: 'PLAYER_ELIMINATED',
+        player: result.eliminatedPlayer,
+      });
+    }
+
     if (result.type === 'gameEnd') {
       this.broadcastToRoom(ws.roomCode!, {
         type: 'GAME_END',
@@ -342,6 +354,7 @@ export class WebSocketServer {
         gameState: result.room.gameState, // ADD THIS LINE
         roundWins: result.room.gameState.roundWins,
         roundNumber: result.room.gameState.roundNumber,
+        winner: result.winner,
       });
 
       // Remove the timeout logic - we don't need it since round is already active
@@ -403,6 +416,23 @@ export class WebSocketServer {
 
     console.log(
       `Difficulty changed to ${message.difficulty} in room: ${ws.roomCode}`
+    );
+  }
+
+  private handlePlayerSelectedLetter(
+    ws: ExtendedWebSocket,
+    message: WebSocketMessage
+  ): void {
+    if (!ws.roomCode || !ws.playerName) return;
+
+    this.broadcastToRoom(
+      ws.roomCode,
+      {
+        type: 'PLAYER_SELECTED_LETTER',
+        player: ws.playerName,
+        letter: message.letter,
+      },
+      ws.playerName
     );
   }
 

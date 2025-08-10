@@ -151,6 +151,25 @@ describe('WebSocketServer', () => {
       expect(mockWs.messages).toHaveLength(5); // ROOM_CREATED, PLAYER_JOINED, GAME_STARTED, GAME_STATE_UPDATE, GAME_STATE_UPDATE
     });
 
+    it('should handle PLAYER_SELECTED_LETTER message', () => {
+      const message: WebSocketMessage = {
+        type: 'PLAYER_SELECTED_LETTER',
+        roomCode,
+        playerName: 'host',
+        letter: 'A',
+      };
+      server.handleMessage(mockWs as any, message);
+
+      // The host should not receive their own broadcast
+      expect(mockWs.messages).toHaveLength(3); // ROOM_CREATED, PLAYER_JOINED, GAME_STARTED
+      // Simulate other player's perspective
+      expect(joinWs.messages[joinWs.messages.length - 1]).toEqual({
+        type: 'PLAYER_SELECTED_LETTER',
+        player: 'host',
+        letter: 'A',
+      });
+    });
+
     it('should handle TIME_UP message', () => {
       // Start turn first
       const startTurnMessage: WebSocketMessage = {
@@ -168,20 +187,27 @@ describe('WebSocketServer', () => {
       };
       server.handleMessage(mockWs as any, timeUpMessage);
 
-      // Should have: ROOM_CREATED, PLAYER_JOINED, GAME_STARTED, GAME_STATE_UPDATE, ROUND_END
-      expect(mockWs.messages).toHaveLength(5); // Changed from 6 to 5
+      // Should have: ROOM_CREATED, PLAYER_JOINED, GAME_STARTED, GAME_STATE_UPDATE, PLAYER_ELIMINATED, ROUND_END
+      expect(mockWs.messages).toHaveLength(6);
+
+      // Verify PLAYER_ELIMINATED message
+      expect(mockWs.messages[4]).toEqual({
+        type: 'PLAYER_ELIMINATED',
+        player: 'host',
+      });
 
       // Verify the last message is ROUND_END with correct data
-      expect(mockWs.messages[4].type).toBe('ROUND_END');
-      expect(mockWs.messages[4].roundNumber).toBe(2);
-      expect(mockWs.messages[4].gameState).toBeDefined();
-      expect(mockWs.messages[4].gameState.roundActive).toBe(true);
+      expect(mockWs.messages[5].type).toBe('ROUND_END');
+      expect(mockWs.messages[5].roundNumber).toBe(2);
+      expect(mockWs.messages[5].winner).toBe('player1');
+      expect(mockWs.messages[5].gameState).toBeDefined();
+      expect(mockWs.messages[5].gameState.roundActive).toBe(true);
 
       // Fast-forward timers (no additional messages expected)
       jest.runAllTimers();
 
-      // Still 5 messages - no change after runAllTimers
-      expect(mockWs.messages).toHaveLength(5);
+      // Still 6 messages - no change after runAllTimers
+      expect(mockWs.messages).toHaveLength(6);
     });
   });
 

@@ -46,6 +46,7 @@ export type EliminationResult = {
   type: 'continue' | 'roundEnd' | 'gameEnd' | 'overtimeStart';
   room: Room;
   winner?: string;
+  eliminatedPlayer?: string;
 };
 
 export type Difficulty = 'easy' | 'hard';
