@@ -135,6 +135,9 @@ const KiaTereGame: React.FC = () => {
         case 'PLAYER_LEFT':
           setPlayers(message.players);
           setConnectedPlayers(message.connectedPlayers);
+          if (message.roundWins) {
+            setRoundWins(message.roundWins);
+          }
           break;
 
         case 'PLAYER_DISCONNECTED':

@@ -90,6 +90,15 @@ export class GameStateManager {
     room.connectedPlayers = room.connectedPlayers.filter(
       (p) => p !== playerName
     );
+
+    // Remove from gameState.players and gameState.roundWins
+    if (room.gameState) {
+      room.gameState.players = room.gameState.players.filter(
+        (p) => p !== playerName
+      );
+      delete room.gameState.roundWins[playerName];
+    }
+
     room.lastActivity = Date.now();
 
     if (room.connectedPlayers.length === 0) {

@@ -391,6 +391,36 @@ describe('WebSocketServer', () => {
       expect(room?.connectedPlayers).not.toContain('player1');
     });
 
+    it('should broadcast updated roundWins when player leaves', () => {
+      // Start the game first
+      const startMessage: WebSocketMessage = {
+        type: 'START_GAME',
+        roomCode,
+        playerName: 'host',
+      };
+      server.handleMessage(mockWs as any, startMessage);
+
+      // Clear previous messages
+      mockWs.messages = [];
+
+      // Leave the room
+      const leaveMessage: WebSocketMessage = {
+        type: 'LEAVE_ROOM',
+      };
+      server.handleMessage(joinWs as any, leaveMessage);
+
+      // Check the broadcast message was sent to the host
+      const playerLeftMsg = mockWs.messages.find(
+        (msg) => msg.type === 'PLAYER_LEFT'
+      );
+
+      expect(playerLeftMsg).toBeDefined();
+      expect(playerLeftMsg?.roundWins).toBeDefined();
+      expect(playerLeftMsg?.roundWins).not.toHaveProperty('player1');
+      expect(playerLeftMsg?.players).not.toContain('player1');
+      expect(playerLeftMsg?.connectedPlayers).not.toContain('player1');
+    });
+
     it('should handle reconnection with preserved game state', () => {
       // Start game and make a move
       const startMessage: WebSocketMessage = {

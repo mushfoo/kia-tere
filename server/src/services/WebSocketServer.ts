@@ -215,6 +215,7 @@ export class WebSocketServer {
           type: 'PLAYER_LEFT',
           players: room.players,
           connectedPlayers: room.connectedPlayers,
+          roundWins: room.gameState?.roundWins || {},
         },
         ws.playerName
       );

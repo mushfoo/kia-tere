@@ -45,6 +45,28 @@ describe('GameStateManager', () => {
       expect(updatedRoom?.connectedPlayers).not.toContain('player1');
       expect(updatedRoom?.players).not.toContain('player1');
     });
+
+    it('should remove player from gameState.players and roundWins when leaving', () => {
+      // Add players and start game
+      gameManager.joinRoom(room.roomCode, 'player1');
+      gameManager.joinRoom(room.roomCode, 'player2');
+      gameManager.startGame(room.roomCode);
+
+      // Verify initial state
+      const currentRoom = gameManager.getRoom(room.roomCode);
+      expect(currentRoom?.gameState.players).toContain('player2');
+      expect(currentRoom?.gameState.roundWins).toHaveProperty('player2');
+      expect(currentRoom?.gameState.roundWins['player2']).toBe(0);
+
+      // Remove player2
+      const updatedRoom = gameManager.removePlayer(room.roomCode, 'player2');
+
+      // Verify player is fully removed
+      expect(updatedRoom?.players).not.toContain('player2');
+      expect(updatedRoom?.connectedPlayers).not.toContain('player2');
+      expect(updatedRoom?.gameState.players).not.toContain('player2');
+      expect(updatedRoom?.gameState.roundWins).not.toHaveProperty('player2');
+    });
   });
 
   describe('Game State Management', () => {
