@@ -117,6 +117,10 @@ export class WebSocketServer {
         this.handleSetDifficulty(ws, message);
         break;
 
+      case 'LEAVE_ROOM':
+        this.handleLeaveRoom(ws);
+        break;
+
       case 'PLAYER_SELECTED_LETTER':
         this.handlePlayerSelectedLetter(ws, message);
         break;
@@ -186,17 +190,40 @@ export class WebSocketServer {
     }
 
     // Notify other players
-    this.broadcastToRoom(
-      room.roomCode,
-      {
-        type: 'PLAYER_JOINED',
-        players: room.players,
-        connectedPlayers: room.connectedPlayers,
-      },
-      message.playerName
-    );
+    const joinPayload: any = {
+      type: 'PLAYER_JOINED',
+      players: room.players,
+      connectedPlayers: room.connectedPlayers,
+    };
+    if (room.gameState.gameStarted) {
+      joinPayload.roundWins = room.gameState.roundWins;
+    }
+    this.broadcastToRoom(room.roomCode, joinPayload, message.playerName);
 
     console.log(`${message.playerName} joined room: ${message.roomCode}`);
+  }
+
+  private handleLeaveRoom(ws: ExtendedWebSocket): void {
+    if (!ws.roomCode || !ws.playerName) return;
+
+    const room = this.gameManager.removePlayer(ws.roomCode, ws.playerName);
+
+    if (room) {
+      this.broadcastToRoom(
+        ws.roomCode,
+        {
+          type: 'PLAYER_LEFT',
+          players: room.players,
+          connectedPlayers: room.connectedPlayers,
+          roundWins: room.gameState?.roundWins || {},
+        },
+        ws.playerName
+      );
+    }
+
+    this.gameManager.removePlayerConnection(ws.playerName);
+    ws.roomCode = undefined;
+    ws.playerName = undefined;
   }
 
   private handleStartGame(
@@ -457,13 +484,17 @@ export class WebSocketServer {
 
   public handleDisconnection(ws: ExtendedWebSocket): void {
     if (ws.roomCode && ws.playerName) {
-      const room = this.gameManager.removePlayer(ws.roomCode, ws.playerName);
+      const room = this.gameManager.disconnectPlayer(
+        ws.roomCode,
+        ws.playerName
+      );
 
       if (room) {
         this.broadcastToRoom(ws.roomCode, {
-          type: 'PLAYER_LEFT',
+          type: 'PLAYER_DISCONNECTED',
           players: room.players,
           connectedPlayers: room.connectedPlayers,
+          player: ws.playerName,
         });
       }
 

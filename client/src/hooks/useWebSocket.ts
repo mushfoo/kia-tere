@@ -69,6 +69,19 @@ export function useWebSocket({
     };
   }, [roomCode, playerName, onMessage]);
 
+  const disconnect = useCallback(() => {
+    if (wsRef.current && connectionStatus === 'connected') {
+      wsRef.current.send(
+        JSON.stringify({
+          type: 'LEAVE_ROOM',
+          roomCode,
+          playerName,
+        })
+      );
+      wsRef.current.close();
+    }
+  }, [connectionStatus, roomCode, playerName]);
+
   useEffect(() => {
     return () => {
       if (wsRef.current) {
@@ -81,5 +94,6 @@ export function useWebSocket({
     connectionStatus,
     sendMessage,
     connect,
+    disconnect,
   };
 }

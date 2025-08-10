@@ -29,11 +29,43 @@ describe('GameStateManager', () => {
       expect(joinedRoom?.connectedPlayers).toContain('player1');
     });
 
-    it('should remove player from room', () => {
+    it('should disconnect player from room', () => {
+      gameManager.joinRoom(room.roomCode, 'player1');
+      const updatedRoom = gameManager.disconnectPlayer(
+        room.roomCode,
+        'player1'
+      );
+      expect(updatedRoom?.connectedPlayers).not.toContain('player1');
+      expect(updatedRoom?.players).toContain('player1'); // Player still in list
+    });
+
+    it('should remove player when leaving room', () => {
       gameManager.joinRoom(room.roomCode, 'player1');
       const updatedRoom = gameManager.removePlayer(room.roomCode, 'player1');
       expect(updatedRoom?.connectedPlayers).not.toContain('player1');
-      expect(updatedRoom?.players).toContain('player1'); // Player still in list
+      expect(updatedRoom?.players).not.toContain('player1');
+    });
+
+    it('should remove player from gameState.players and roundWins when leaving', () => {
+      // Add players and start game
+      gameManager.joinRoom(room.roomCode, 'player1');
+      gameManager.joinRoom(room.roomCode, 'player2');
+      gameManager.startGame(room.roomCode);
+
+      // Verify initial state
+      const currentRoom = gameManager.getRoom(room.roomCode);
+      expect(currentRoom?.gameState.players).toContain('player2');
+      expect(currentRoom?.gameState.roundWins).toHaveProperty('player2');
+      expect(currentRoom?.gameState.roundWins['player2']).toBe(0);
+
+      // Remove player2
+      const updatedRoom = gameManager.removePlayer(room.roomCode, 'player2');
+
+      // Verify player is fully removed
+      expect(updatedRoom?.players).not.toContain('player2');
+      expect(updatedRoom?.connectedPlayers).not.toContain('player2');
+      expect(updatedRoom?.gameState.players).not.toContain('player2');
+      expect(updatedRoom?.gameState.roundWins).not.toHaveProperty('player2');
     });
   });
 
@@ -41,6 +73,13 @@ describe('GameStateManager', () => {
     beforeEach(() => {
       gameManager.joinRoom(room.roomCode, 'player1');
       gameManager.startGame(room.roomCode);
+    });
+
+    describe('Mid-game player joins', () => {
+      it('should add new player to roundWins with zero wins', () => {
+        const updatedRoom = gameManager.joinRoom(room.roomCode, 'latePlayer');
+        expect(updatedRoom?.gameState.roundWins['latePlayer']).toBe(0);
+      });
     });
 
     describe('Round Management', () => {
@@ -577,7 +616,7 @@ describe('GameStateManager', () => {
         },
       };
 
-      gameManager.removePlayer(room.roomCode, 'player1');
+      gameManager.disconnectPlayer(room.roomCode, 'player1');
 
       const afterState = gameManager.getRoom(room.roomCode)!;
       expect(afterState.gameState.usedLetters).toEqual(beforeState.usedLetters);
@@ -622,7 +661,7 @@ describe('GameStateManager', () => {
       gameManager.joinRoom(room.roomCode, 'player1');
       gameManager.startGame(room.roomCode);
 
-      gameManager.removePlayer(room.roomCode, 'player1');
+      gameManager.disconnectPlayer(room.roomCode, 'player1');
       expect(
         gameManager.getRoom(room.roomCode)?.connectedPlayers
       ).not.toContain('player1');
