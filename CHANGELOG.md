@@ -1,7 +1,5 @@
 # Changelog
 
-All notable changes to this project are documented here based on the Git history.
-
 ## 2025-08-10
 ### Added
 - Distinguish disconnects from players intentionally leaving rooms.
