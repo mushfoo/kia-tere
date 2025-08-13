@@ -24,7 +24,8 @@ export interface GameState {
   roundActive: boolean;
   roundNumber: number;
   gameStarted: boolean;
-  difficulty: Difficulty;
+  letterDifficulty: Difficulty;
+  categoryDifficulty: Difficulty;
   turnTime: number;
 }
 
