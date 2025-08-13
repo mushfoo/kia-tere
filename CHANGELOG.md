@@ -3,9 +3,9 @@
 ## 2025-08-12
 ### Added
 - Implement category difficulty levels with separate easy and hard category lists. ([`1f35c47`](https://github.com/campbell-rehu/kia-tere/commit/1f35c476c053628005d6a34db02950d811fd302c))
-- Expand category selection with 27 new challenging categories for hard difficulty.
+- Expand category selection with 27 new challenging categories for hard difficulty. ([`1f35c47`](https://github.com/campbell-rehu/kia-tere/commit/1f35c476c053628005d6a34db02950d811fd302c))
 ### Fixed
-- Reset both player and category difficulty settings to default (easy) when starting a new game after returning to menu.
+- Reset both player and category difficulty settings to default (easy) when starting a new game after returning to menu. ([`1f35c47`](https://github.com/campbell-rehu/kia-tere/commit/1f35c476c053628005d6a34db02950d811fd302c))
 
 ## 2025-08-10
 ### Added
