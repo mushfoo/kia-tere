@@ -2,9 +2,9 @@
 
 ## 2025-08-10
 ### Added
-- Distinguish disconnects from players intentionally leaving rooms.
-- Add keyboard controls for gameplay.
-- Allow custom turn duration.
+- Distinguish disconnects from players intentionally leaving rooms. (`0577c22`)
+- Add keyboard controls for gameplay. (`a6643d2`)
+- Allow custom turn duration. (`d736601`)
 
 ## 2025-08-09
 ### Added
