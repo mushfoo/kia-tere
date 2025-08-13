@@ -422,10 +422,10 @@ const KiaTereGame: React.FC = () => {
       if (letters.includes(key)) {
         handleLetterSelect(key);
       } else if (event.key === 'Enter' && isMyTurn) {
-        if (roundActive) {
-          endTurn();
-        } else {
+        if (!isTimerRunning) {
           startTurn();
+        } else if (roundActive) {
+          endTurn();
         }
       }
     };
@@ -437,6 +437,7 @@ const KiaTereGame: React.FC = () => {
     handleLetterSelect,
     isMyTurn,
     roundActive,
+    isTimerRunning,
     startTurn,
     endTurn,
   ]);
@@ -957,7 +958,7 @@ const KiaTereGame: React.FC = () => {
           <div className="text-center mt-8 text-slate-600">
             <p className="mb-2">
               1. Select/deselect letters with your keyboard or mouse • 2. Say
-              your word • 3. Press Enter or click "End Turn"
+              your word • 3. Press Enter to start or end your turn
             </p>
             <p className="text-sm">
               {isMyTurn ? "It's your turn!" : `Waiting for ${currentPlayer}...`}{' '}

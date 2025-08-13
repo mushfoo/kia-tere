@@ -16,7 +16,7 @@ jest.mock('../../hooks/useWebSocket', () => ({
   },
 }));
 
-describe('KiaTereGame category refresh', () => {
+describe('KiaTereGame interactions', () => {
   const baseGameState = {
     players: ['host'],
     activePlayers: ['host'],
@@ -80,5 +80,24 @@ describe('KiaTereGame category refresh', () => {
     });
 
     expect(screen.getByText('Food')).toBeInTheDocument();
+  });
+
+  it('starts turn when Enter key is pressed', () => {
+    render(<KiaTereGame />);
+    const nameInput = screen.getByPlaceholderText('Enter your name');
+    fireEvent.change(nameInput, { target: { value: 'host' } });
+    act(() => {
+      capturedOnMessage({
+        type: 'ROOM_CREATED',
+        roomCode: 'ABC123',
+        players: ['host'],
+        connectedPlayers: ['host'],
+      });
+      capturedOnMessage({ type: 'GAME_STARTED', gameState: baseGameState });
+    });
+
+    fireEvent.keyDown(window, { key: 'Enter' });
+
+    expect(mockSendMessage).toHaveBeenCalledWith({ type: 'START_TURN' });
   });
 });
