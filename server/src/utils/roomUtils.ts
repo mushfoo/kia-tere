@@ -1,4 +1,4 @@
-import { Room, GameState } from '../types';
+import { Room, GameState, Difficulty } from '../types';
 import { GAME_CONSTANTS, CATEGORIES } from '../constants';
 
 /**
@@ -18,7 +18,9 @@ export function generateRoomCode(): string {
  */
 export function createInitialGameState(
   players: string[],
-  turnTime: number = GAME_CONSTANTS.TURN_TIME
+  turnTime: number = GAME_CONSTANTS.TURN_TIME,
+  letterDifficulty: Difficulty = 'easy',
+  categoryDifficulty: Difficulty = 'easy'
 ): GameState {
   const roundWins: Record<string, number> = {};
   const playersCopy = [...players];
@@ -37,7 +39,8 @@ export function createInitialGameState(
     roundActive: false,
     roundNumber: 1,
     gameStarted: false,
-    difficulty: 'easy',
+    letterDifficulty,
+    categoryDifficulty,
     isOvertimeRound: false,
     overtimeLevel: 0,
     answersRequired: 1,
@@ -61,10 +64,14 @@ export function shouldCleanupRoom(room: Room): boolean {
  * excluding any categories that have already been used. If all
  * categories have been used, the full list is used again.
  */
-export function getRandomCategory(usedCategories: string[] = []): string {
-  const available = CATEGORIES.filter(
+export function getRandomCategory(
+  usedCategories: string[] = [],
+  difficulty: Difficulty = 'easy'
+): string {
+  const categorySet = CATEGORIES[difficulty];
+  const available = categorySet.filter(
     (category) => !usedCategories.includes(category)
   );
-  const source = available.length > 0 ? available : CATEGORIES;
+  const source = available.length > 0 ? available : categorySet;
   return source[Math.floor(Math.random() * source.length)];
 }

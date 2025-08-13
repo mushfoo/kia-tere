@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("Difficulty Selection", () => {
-  test("should allow host to change difficulty in lobby", async ({ page }) => {
+    test("should allow host to change difficulty in lobby", async ({ page }) => {
     // Create room and get to lobby
     await page.goto("/");
     await page.locator('input[placeholder="Enter your name"]').fill("Host");
@@ -9,48 +9,45 @@ test.describe("Difficulty Selection", () => {
     
     await expect(page.locator("text=Game Lobby")).toBeVisible({ timeout: 15000 });
 
-    // Test: Verify difficulty selector exists
-    const difficultySelector = page.locator("button:has-text('Easy')").or(
-      page.locator("button:has-text('Hard')")
-    );
-    
-    await expect(difficultySelector.first()).toBeVisible();
+    // Test: Verify letter and category selectors exist
+    const letterSelector = page
+      .locator("button:has-text('Easy (18 letters)')")
+      .or(page.locator("button:has-text('Hard (26 letters)')"));
+    await expect(letterSelector.first()).toBeVisible();
 
-    // Test: Change difficulty from easy to hard (or vice versa)
-    const isSelectElement = await page.locator("select").isVisible();
-    
-    if (isSelectElement) {
-      // Handle select dropdown
-      const select = page.locator("select");
-      const currentValue = await select.inputValue();
-      const newValue = currentValue === "easy" ? "hard" : "easy";
-      
-      await select.selectOption(newValue);
-      await expect(select).toHaveValue(newValue);
+    const categorySelector = page
+      .locator("button:has-text('Easy Categories')")
+      .or(page.locator("button:has-text('Hard Categories')"));
+    await expect(categorySelector.first()).toBeVisible();
+
+    // Toggle letter difficulty
+    const letterEasyButton = page.locator("button:has-text('Easy (18 letters)')");
+    const letterHardButton = page.locator("button:has-text('Hard (26 letters)')");
+    const easyActive = await letterEasyButton.getAttribute("class");
+    if (easyActive?.includes("bg-green-500")) {
+      await letterHardButton.click();
+      const newHardState = await letterHardButton.getAttribute("class");
+      expect(newHardState).toContain("bg-red-500");
     } else {
-      // Handle button-based difficulty selection
-      const easyButton = page.locator("button:has-text('Easy (18 letters)')");
-      const hardButton = page.locator("button:has-text('Hard (26 letters)')");
-      
-      if (await easyButton.isVisible() && await hardButton.isVisible()) {
-        // Check current state and toggle
-        const easyActive = await easyButton.getAttribute("class");
-        const hardActive = await hardButton.getAttribute("class");
-        
-        if (easyActive?.includes("bg-green-500")) {
-          await hardButton.click();
-          // Verify hard is now selected
-          const newHardState = await hardButton.getAttribute("class");
-          expect(newHardState).toContain("bg-red-500");
-        } else {
-          await easyButton.click();
-          // Verify easy is now selected
-          const newEasyState = await easyButton.getAttribute("class");
-          expect(newEasyState).toContain("bg-green-500");
-        }
-      }
+      await letterEasyButton.click();
+      const newEasyState = await letterEasyButton.getAttribute("class");
+      expect(newEasyState).toContain("bg-green-500");
     }
-  });
+
+    // Toggle category difficulty
+    const catEasyButton = page.locator("button:has-text('Easy Categories')");
+    const catHardButton = page.locator("button:has-text('Hard Categories')");
+    const catEasyActive = await catEasyButton.getAttribute("class");
+    if (catEasyActive?.includes("bg-green-500")) {
+      await catHardButton.click();
+      const newCatHard = await catHardButton.getAttribute("class");
+      expect(newCatHard).toContain("bg-red-500");
+    } else {
+      await catEasyButton.click();
+      const newCatEasy = await catEasyButton.getAttribute("class");
+      expect(newCatEasy).toContain("bg-green-500");
+    }
+    });
 
   test("should show correct letter count based on difficulty", async ({ page }) => {
     // Create room and get to lobby
@@ -102,7 +99,9 @@ test.describe("Difficulty Selection", () => {
       await expect(page.locator("text=Hard (26 letters)")).toBeVisible();
       
       // Verify start button shows hard mode in its text
-      const startButton = page.locator("button:has-text('Start Game (hard mode)')");
+      const startButton = page.locator(
+        "button:has-text('Start Game (letters: hard, categories: easy)')"
+      );
       await expect(startButton).toBeVisible();
       
       // Switch back to easy and verify it changes
@@ -110,7 +109,9 @@ test.describe("Difficulty Selection", () => {
       await easyButton.click();
       
       await expect(page.locator("text=Easy (18 letters)")).toBeVisible();
-      const easyStartButton = page.locator("button:has-text('Start Game (easy mode)')");
+      const easyStartButton = page.locator(
+        "button:has-text('Start Game (letters: easy, categories: easy)')"
+      );
       await expect(easyStartButton).toBeVisible();
     }
   });
