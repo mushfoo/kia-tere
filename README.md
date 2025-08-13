@@ -29,7 +29,7 @@ A fast-paced multiplayer word game where players race against time to find words
 2. **Your Turn**: You have 10 seconds to find a word that fits the category
 3. **Select Letter**: Choose the starting letter by clicking or typing it
 4. **Say Your Word**: Announce your word out loud to other players
-5. **End Turn**: Press Enter or click "End Turn" to pass to the next player
+5. **Start/End Turn**: Press Enter to start your turn and to pass to the next player, or use the on-screen buttons
 6. **Elimination**: If time runs out, you're eliminated from the round
 
 ### Winning
