@@ -24,7 +24,8 @@ export interface GameState {
   roundActive: boolean;
   roundNumber: number;
   gameStarted: boolean;
-  difficulty: 'easy' | 'hard';
+  letterDifficulty: Difficulty;
+  categoryDifficulty: Difficulty;
   isOvertimeRound: boolean;
   overtimeLevel: number;
   answersRequired: number;

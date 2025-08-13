@@ -51,7 +51,8 @@ describe('Room Utilities', () => {
       expect(state.roundActive).toBe(false);
       expect(state.roundNumber).toBe(1);
       expect(state.gameStarted).toBe(false);
-      expect(state.difficulty).toBe('easy');
+      expect(state.letterDifficulty).toBe('easy');
+      expect(state.categoryDifficulty).toBe('easy');
       expect(state.usedLetters).toEqual([]);
       expect(state.usedCategories).toEqual([]);
     });
@@ -137,22 +138,22 @@ describe('Room Utilities', () => {
 
   describe('getRandomCategory', () => {
     it('should return a valid category', () => {
-      const category = getRandomCategory();
-      expect(CATEGORIES).toContain(category);
+      const category = getRandomCategory([], 'easy');
+      expect(CATEGORIES.easy).toContain(category);
     });
 
     it('should return different categories over multiple calls', () => {
       const categories = new Set();
       for (let i = 0; i < 100; i++) {
-        categories.add(getRandomCategory());
+        categories.add(getRandomCategory([], 'easy'));
       }
       // With 26 categories and 100 tries, we should get at least 10 different ones
       expect(categories.size).toBeGreaterThan(10);
     });
 
     it('should not return used categories', () => {
-      const used = CATEGORIES.slice(0, 5);
-      const category = getRandomCategory(used);
+      const used = CATEGORIES.easy.slice(0, 5);
+      const category = getRandomCategory(used, 'easy');
       expect(used).not.toContain(category);
     });
   });

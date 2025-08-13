@@ -228,17 +228,21 @@ export class GameStateManager {
    * @returns true if overtime should start, false otherwise
    */
   private shouldTriggerOvertime(room: Room): boolean {
-    const availableLetters = LETTER_SETS[room.gameState.difficulty];
+    const availableLetters = LETTER_SETS[room.gameState.letterDifficulty];
     const allLettersUsed =
       room.gameState.usedLetters.length >= availableLetters.length;
     return allLettersUsed && room.gameState.activePlayers.length > 1;
   }
 
   private selectCategory(room: Room): string {
-    if (room.gameState.usedCategories.length >= CATEGORIES.length) {
+    const categoryPool = CATEGORIES[room.gameState.categoryDifficulty];
+    if (room.gameState.usedCategories.length >= categoryPool.length) {
       room.gameState.usedCategories = [];
     }
-    const category = getRandomCategory(room.gameState.usedCategories);
+    const category = getRandomCategory(
+      room.gameState.usedCategories,
+      room.gameState.categoryDifficulty
+    );
     room.gameState.usedCategories.push(category);
     return category;
   }
@@ -246,18 +250,23 @@ export class GameStateManager {
   // Game state management
   startGame(
     roomCode: string,
-    difficulty: Difficulty = 'easy',
+    letterDifficulty: Difficulty = 'easy',
+    categoryDifficulty: Difficulty = 'easy',
     turnTime: number = GAME_CONSTANTS.TURN_TIME
   ): Room | null {
     const room = this.rooms.get(roomCode);
     if (!room) return null;
 
     // Initialize game state
-    room.gameState = createInitialGameState(room.players, turnTime);
+    room.gameState = createInitialGameState(
+      room.players,
+      turnTime,
+      letterDifficulty,
+      categoryDifficulty
+    );
     room.gameState.gameStarted = true;
     room.gameState.roundActive = true;
     room.gameState.currentCategory = this.selectCategory(room);
-    room.gameState.difficulty = difficulty;
 
     return room;
   }

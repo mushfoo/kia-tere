@@ -241,14 +241,16 @@ export class WebSocketServer {
       return;
     }
 
-    const difficulty = message.difficulty || 'easy';
+    const letterDifficulty = message.letterDifficulty || 'easy';
+    const categoryDifficulty = message.categoryDifficulty || 'easy';
     const turnTime =
       typeof message.turnTime === 'number'
         ? message.turnTime
         : GAME_CONSTANTS.TURN_TIME;
     const updatedRoom = this.gameManager.startGame(
       ws.roomCode!,
-      difficulty,
+      letterDifficulty,
+      categoryDifficulty,
       turnTime
     );
 
@@ -263,7 +265,7 @@ export class WebSocketServer {
     });
 
     console.log(
-      `Game started in room: ${ws.roomCode} with ${difficulty} difficulty`
+      `Game started in room: ${ws.roomCode} with letter ${letterDifficulty} and category ${categoryDifficulty} difficulty`
     );
   }
 
@@ -433,7 +435,12 @@ export class WebSocketServer {
     }
 
     // Update difficulty in game state
-    room.gameState.difficulty = message.difficulty;
+    if (message.letterDifficulty) {
+      room.gameState.letterDifficulty = message.letterDifficulty;
+    }
+    if (message.categoryDifficulty) {
+      room.gameState.categoryDifficulty = message.categoryDifficulty;
+    }
 
     // Broadcast the change to all players
     this.broadcastToRoom(ws.roomCode!, {
@@ -442,7 +449,7 @@ export class WebSocketServer {
     });
 
     console.log(
-      `Difficulty changed to ${message.difficulty} in room: ${ws.roomCode}`
+      `Difficulty changed in room: ${ws.roomCode} to letters=${room.gameState.letterDifficulty}, categories=${room.gameState.categoryDifficulty}`
     );
   }
 

@@ -90,7 +90,9 @@ const KiaTereGame: React.FC = () => {
   >(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [copySuccess, setCopySuccess] = useState<boolean>(false);
-  const [difficulty, setDifficulty] = useState<Difficulty>('easy');
+  const [letterDifficulty, setLetterDifficulty] = useState<Difficulty>('easy');
+  const [categoryDifficulty, setCategoryDifficulty] =
+    useState<Difficulty>('easy');
   const [turnTime, setTurnTime] = useState<number>(10);
   const [isCreatingRoom, setIsCreatingRoom] = useState<boolean>(false);
   const [isOvertimeRound, setIsOvertimeRound] = useState<boolean>(false);
@@ -98,7 +100,7 @@ const KiaTereGame: React.FC = () => {
   const [answersRequired, setAnswersRequired] = useState<number>(1);
 
   // Letters arranged in a grid - now using difficulty-based sets
-  const letters: readonly string[] = LETTER_SETS[difficulty];
+  const letters: readonly string[] = LETTER_SETS[letterDifficulty];
 
   const showToast = (msg: string): void => {
     setToastMessage(msg);
@@ -157,7 +159,8 @@ const KiaTereGame: React.FC = () => {
           setTimeLeft(message.gameState.timeLeft);
           setIsTimerRunning(message.gameState.isTimerRunning);
           setRoundActive(message.gameState.roundActive);
-          setDifficulty(message.gameState.difficulty || 'easy');
+          setLetterDifficulty(message.gameState.letterDifficulty || 'easy');
+          setCategoryDifficulty(message.gameState.categoryDifficulty || 'easy');
           setTurnTime(message.gameState.turnTime || 10);
           setIsOvertimeRound(message.gameState.isOvertimeRound || false);
           setOvertimeLevel(message.gameState.overtimeLevel || 0);
@@ -173,6 +176,12 @@ const KiaTereGame: React.FC = () => {
           setCurrentCategory(message.gameState.currentCategory);
           setTimeLeft(message.gameState.timeLeft);
           setIsTimerRunning(message.gameState.isTimerRunning);
+          setLetterDifficulty(
+            message.gameState.letterDifficulty || letterDifficulty
+          );
+          setCategoryDifficulty(
+            message.gameState.categoryDifficulty || categoryDifficulty
+          );
           setTurnTime(message.gameState.turnTime || turnTime);
           setIsOvertimeRound(message.gameState.isOvertimeRound || false);
           setOvertimeLevel(message.gameState.overtimeLevel || 0);
@@ -246,7 +255,7 @@ const KiaTereGame: React.FC = () => {
           break;
       }
     },
-    [turnTime]
+    [turnTime, letterDifficulty, categoryDifficulty]
   );
 
   const { connectionStatus, sendMessage, connect, disconnect } = useWebSocket({
@@ -307,10 +316,21 @@ const KiaTereGame: React.FC = () => {
     if (!isHost) return;
     sendMessage({
       type: 'START_GAME',
-      difficulty,
+      letterDifficulty,
+      categoryDifficulty,
       turnTime,
     });
   };
+
+  useEffect(() => {
+    if (isHost && gameState === 'lobby') {
+      sendMessage({
+        type: 'SET_DIFFICULTY',
+        letterDifficulty,
+        categoryDifficulty,
+      });
+    }
+  }, [isHost, gameState, letterDifficulty, categoryDifficulty, sendMessage]);
 
   const handleLetterSelect = useCallback(
     (letter: string): void => {
@@ -382,7 +402,8 @@ const KiaTereGame: React.FC = () => {
     setRoundActive(false);
     setActivePlayers([]);
     setRoundNumber(1);
-    setDifficulty('easy');
+    setLetterDifficulty('easy');
+    setCategoryDifficulty('easy');
     setTurnTime(10);
     setIsOvertimeRound(false);
     setOvertimeLevel(0);
@@ -612,13 +633,13 @@ const KiaTereGame: React.FC = () => {
               <>
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Difficulty Level
+                    Letter Difficulty
                   </label>
                   <div className="flex gap-2">
                     <button
-                      onClick={() => setDifficulty('easy')}
+                      onClick={() => setLetterDifficulty('easy')}
                       className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
-                        difficulty === 'easy'
+                        letterDifficulty === 'easy'
                           ? 'bg-green-500 text-white'
                           : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                       }`}
@@ -626,9 +647,9 @@ const KiaTereGame: React.FC = () => {
                       Easy ({LETTER_SETS.easy.length} letters)
                     </button>
                     <button
-                      onClick={() => setDifficulty('hard')}
+                      onClick={() => setLetterDifficulty('hard')}
                       className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
-                        difficulty === 'hard'
+                        letterDifficulty === 'hard'
                           ? 'bg-red-500 text-white'
                           : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                       }`}
@@ -637,9 +658,42 @@ const KiaTereGame: React.FC = () => {
                     </button>
                   </div>
                   <div className="mt-2 text-xs text-slate-600">
-                    {difficulty === 'easy'
+                    {letterDifficulty === 'easy'
                       ? 'Common letters only - easier to find words'
                       : 'All letters including Q, X, Z - more challenging'}
+                  </div>
+                </div>
+
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Category Difficulty
+                  </label>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setCategoryDifficulty('easy')}
+                      className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
+                        categoryDifficulty === 'easy'
+                          ? 'bg-green-500 text-white'
+                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                      }`}
+                    >
+                      Easy Categories
+                    </button>
+                    <button
+                      onClick={() => setCategoryDifficulty('hard')}
+                      className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
+                        categoryDifficulty === 'hard'
+                          ? 'bg-red-500 text-white'
+                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                      }`}
+                    >
+                      Hard Categories
+                    </button>
+                  </div>
+                  <div className="mt-2 text-xs text-slate-600">
+                    {categoryDifficulty === 'easy'
+                      ? 'Common categories for casual play'
+                      : 'More challenging categories for experienced players'}
                   </div>
                 </div>
 
@@ -668,7 +722,8 @@ const KiaTereGame: React.FC = () => {
                   className="w-full py-3 bg-teal-600 text-white rounded-lg font-semibold hover:bg-teal-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
                 >
                   <Play className="w-5 h-5" />
-                  Start Game ({difficulty} mode)
+                  Start Game (letters: {letterDifficulty}, categories:{' '}
+                  {categoryDifficulty})
                 </button>
               </>
             )}
@@ -679,9 +734,17 @@ const KiaTereGame: React.FC = () => {
                   Waiting for host to start the game
                 </p>
                 <p className="text-sm text-slate-500">
-                  Difficulty:{' '}
-                  <span className="font-semibold capitalize">{difficulty}</span>
-                  ({LETTER_SETS[difficulty].length} letters)
+                  Letter Difficulty:{' '}
+                  <span className="font-semibold capitalize">
+                    {letterDifficulty}
+                  </span>{' '}
+                  ({LETTER_SETS[letterDifficulty].length} letters)
+                </p>
+                <p className="text-sm text-slate-500">
+                  Category Difficulty:{' '}
+                  <span className="font-semibold capitalize">
+                    {categoryDifficulty}
+                  </span>
                 </p>
                 <p className="text-sm text-slate-500">Turn Time: {turnTime}s</p>
               </div>
@@ -832,15 +895,25 @@ const KiaTereGame: React.FC = () => {
                 {currentCategory}
               </p>
               <div className="mt-2 text-sm text-slate-600">
-                <span className="font-medium">Difficulty:</span>
+                <span className="font-medium">Letter Difficulty:</span>
                 <span
                   className={`ml-1 px-2 py-1 rounded text-xs font-semibold ${
-                    difficulty === 'easy'
+                    letterDifficulty === 'easy'
                       ? 'bg-green-100 text-green-800'
                       : 'bg-red-100 text-red-800'
                   }`}
                 >
-                  {difficulty.toUpperCase()} ({letters.length} letters)
+                  {letterDifficulty.toUpperCase()} ({letters.length} letters)
+                </span>
+                <span className="ml-2 font-medium">Category Difficulty:</span>
+                <span
+                  className={`ml-1 px-2 py-1 rounded text-xs font-semibold ${
+                    categoryDifficulty === 'easy'
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-red-100 text-red-800'
+                  }`}
+                >
+                  {categoryDifficulty.toUpperCase()}
                 </span>
                 {isOvertimeRound && (
                   <span className="ml-1 px-2 py-1 rounded text-xs font-semibold bg-amber-100 text-amber-800">
